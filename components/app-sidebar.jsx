@@ -20,7 +20,7 @@ const navigation = [
   { name: "History", href: "/dashboard/history", icon: History },
   { name: "Support", href: "/dashboard/tickets", icon: Ticket },
   { name: "Contact", href: "/dashboard/contact", icon: Phone },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+  // { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
 
 export function AppSidebar() {
