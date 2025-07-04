@@ -128,7 +128,7 @@ export default function DashboardPage() {
           coordinates: body.coordinates,
           isConnected: true,
           lastUpdate: now,
-          driverScore: 80,
+          driverScore: body.driverScore,
           sharpTurnsToday: body.sharpTurnsToday,
           recentIncidents: body.recentIncidents,
           lastSharpTurn: body.lastSharpTurn,
@@ -202,7 +202,7 @@ export default function DashboardPage() {
           <Shield className="h-8 w-8 text-blue-600 dark:text-blue-400" />
           <div>
             <h1 className="text-2xl font-bold text-foreground">Drishti (दृष्टि) Safety Dashboard</h1>
-            <p className="text-sm text-muted-foreground">Real-time monitoring & safety analytics</p>
+            <p className="text-sm text-muted-foreground">Vehicle Monitering System</p>
           </div>
         </div>
 
@@ -264,7 +264,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-3 text-gray-800 dark:text-black">
               <Trophy className="h-6 w-6 text-yellow-500 dark:text-yellow-300" />
-              Daily Safety Score
+              Safety Score
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -313,7 +313,7 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 max-h-80 overflow-y-auto">
+            <div className="space-y-3 max-h-40 overflow-y-auto">
               {sortedIncidents.length === 0 ? (
                 <div className="flex items-center gap-2 text-green-700 bg-green-50 p-3 rounded-lg border border-green-200 dark:text-green-200 dark:bg-green-900 dark:border-green-700">
                   <CheckCircle className="h-4 w-4" />
@@ -355,7 +355,7 @@ export default function DashboardPage() {
             {sortedIncidents.length > 0 && (
               <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
                 <p className="text-xs text-gray-500 text-center dark:text-gray-400">
-                  🔴 High alerts are continuous • 🟡 Medium alerts fade after 1min • 🔵 Low alerts fade after 1min
+                  🔴 High alerts  • 🟡 Medium alerts • 🔵 Low alerts 
                 </p>
               </div>
             )}
@@ -372,9 +372,8 @@ export default function DashboardPage() {
             <Droplets className="h-4 w-4 text-red-600 dark:text-red-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.alcoholLevel.toFixed(5)} mg/L</div>
-            <Progress value={Math.min((data.alcoholLevel / 0.08) * 100, 100)} className="mt-2" />
-            <p className="text-xs text-muted-foreground mt-1">Legal limit: 0.080 mg/L</p>
+            <div className="text-2xl font-bold">{data.alcoholLevel.toFixed(2)} mg/L</div>
+            <Progress value={Math.min((data.alcoholLevel / 0.008) * 100, 100)} className="mt-2" />
           </CardContent>
         </Card>
 

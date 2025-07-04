@@ -1,4 +1,4 @@
-// route.js
+// route.js - Debug version to trace the issue
 import { NextResponse } from "next/server"
 
 export async function GET() {
@@ -8,7 +8,7 @@ export async function GET() {
       fetch("http://localhost:3000/api/visibility"),
       fetch("http://localhost:3000/api/drowsiness"),
       fetch("http://localhost:3000/api/obd"),
-      fetch("http://localhost:3000/api/history") // Fetch history for safety score calculation
+      fetch("http://localhost:3000/api/history")
     ]
 
     const [alcohol, visibility, drowsiness, obd, history] = await Promise.all(
@@ -20,21 +20,14 @@ export async function GET() {
 
     const currentTime = new Date()
 
-    // Helper to check if data is fresh
     const isDataFresh = (timestamp) => {
       if (!timestamp) return false
       const dataTime = new Date(timestamp)
       return (currentTime.getTime() - dataTime.getTime()) < DATA_FRESHNESS_THRESHOLD_MS
     }
 
-    // 🧪 Calculate BAC inside the function
-    const rawAlcohol = alcohol?.alcoholLevel || 0
-    const voltage = (rawAlcohol / 1023.0) * 5.0
-    const ratio = (5.0 - voltage) / voltage
-    const rs_ro = (ratio * 200000) / 42500
-    const bacEstimate = 0.4 * (rs_ro ** -1.5) * 1.22e-3
-
-    // 🧮 Calculate daily safety score from history
+    const bacEstimate = alcohol?.alcoholLevel || 0
+ 
     let dailySafetyScore = 100
     let recentIncidents = []
 
@@ -45,8 +38,10 @@ export async function GET() {
       // Filter today's incidents
       const todayIncidents = history.incidents.filter(incident => {
         const incidentTime = new Date(incident.time)
-        return incidentTime >= todayStart && incidentTime <= now
-      }).sort((a, b) => new Date(b.time) - new Date(a.time)) // Sort by most recent first
+        const isToday = incidentTime >= todayStart && incidentTime <= now
+        return isToday
+      }).sort((a, b) => new Date(b.time) - new Date(a.time))
+
 
       // Calculate penalties for today
       let penalty = 0
@@ -64,24 +59,45 @@ export async function GET() {
       ).length
 
       if (recentIncidentsCount === 0 && now.getHours() > 0) {
-        // Add bonus for clean driving (every hour without incidents)
         const hoursWithoutIncidents = Math.floor((now - todayStart) / (60 * 60 * 1000))
-        dailySafetyScore += Math.min(hoursWithoutIncidents, 20) // Max 20 bonus points
+        dailySafetyScore += Math.min(hoursWithoutIncidents, 20)
       }
 
       dailySafetyScore = Math.max(0, Math.min(100, dailySafetyScore - penalty))
 
-      // Get recent incidents (last 5 minutes for display)
-      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000)
-      recentIncidents = todayIncidents.filter(incident =>
-        new Date(incident.time) >= fiveMinutesAgo
-      ).slice(0, 4) // Max 4 incidents displayed
+      // Strategy 1: Last 30 minutes
+      const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000)
+      let filteredIncidents = todayIncidents.filter(incident =>
+        new Date(incident.time) >= thirtyMinutesAgo
+      )
+      // Strategy 2: Last 2 hours if no recent incidents
+      if (filteredIncidents.length === 0) {
+        const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000)
+        filteredIncidents = todayIncidents.filter(incident =>
+          new Date(incident.time) >= twoHoursAgo
+        )
+      }
+
+      // Strategy 3: Just show the most recent 4 incidents from today
+      if (filteredIncidents.length === 0 && todayIncidents.length > 0) {
+        filteredIncidents = todayIncidents.slice(0, 4)
+      }
+
+      // Strategy 4: Show ALL incidents from history (for debugging)
+      if (filteredIncidents.length === 0 && history.incidents.length > 0) {
+        filteredIncidents = history.incidents
+          .sort((a, b) => new Date(b.time) - new Date(a.time))
+          .slice(0, 4)
+      }
+
+      recentIncidents = filteredIncidents.slice(0, 4)
+
     }
 
     // 🚨 Check for current live alerts
     const currentAlerts = []
 
-    // High speed alert (only if OBD data is fresh)
+    // High speed alert
     const currentSpeed = obd?.speed || 0
     if (isDataFresh(obd?.timestamp) && currentSpeed > 80) {
       currentAlerts.push({
@@ -92,34 +108,9 @@ export async function GET() {
         time: currentTime,
         continuous: true
       })
-    } else if (!isDataFresh(obd?.timestamp)) {
-        // Optionally add an alert for OBD being offline/stale if critical
-        // currentAlerts.push({
-        //   id: `obd-offline-${Date.now()}`,
-        //   type: "OBD Offline",
-        //   severity: "Low",
-        //   description: "OBD sensor data is stale or offline.",
-        //   time: currentTime,
-        //   continuous: true
-        // });
     }
 
-    // Alcohol alert (only if alcohol data is fresh)
-    if (isDataFresh(alcohol?.timestamp) && bacEstimate >= 0.08) {
-      currentAlerts.push({
-        id: `alcohol-${Date.now()}`,
-        type: "Alcohol Detected",
-        severity: "High",
-        description: `BAC: ${bacEstimate.toFixed(3)} mg/L (Above legal limit)`,
-        time: currentTime,
-        continuous: true
-      })
-    } else if (!isDataFresh(alcohol?.timestamp)) {
-        // Optionally add an alert for Alcohol sensor being offline/stale
-    }
-
-
-    // Low visibility alert (only if frontcam data is fresh)
+    // Low visibility alert
     const visScore = visibility?.visibilityScore || 100
     if (isDataFresh(visibility?.timestamp) && visScore < 60) {
       currentAlerts.push({
@@ -130,11 +121,9 @@ export async function GET() {
         time: currentTime,
         continuous: true
       })
-    } else if (!isDataFresh(visibility?.timestamp)) {
-        // Optionally add an alert for Front Cam being offline/stale
     }
 
-    // Drowsiness alert (only if dashcam data is fresh)
+    // Drowsiness alert
     const drowsyState = drowsiness?.state || "Awake"
     if (isDataFresh(drowsiness?.timestamp) && drowsyState !== "Awake" && drowsyState !== "No Face Detected") {
       currentAlerts.push({
@@ -145,12 +134,9 @@ export async function GET() {
         time: currentTime,
         continuous: true
       })
-    } else if (!isDataFresh(drowsiness?.timestamp)) {
-        // Optionally add an alert for Dash Cam being offline/stale
     }
 
-
-    // No face detected alert (only if dashcam data is fresh)
+    // No face detected alert
     if (isDataFresh(drowsiness?.timestamp) && drowsyState === "No Face Detected") {
       currentAlerts.push({
         id: `noface-${Date.now()}`,
@@ -160,24 +146,13 @@ export async function GET() {
         time: currentTime,
         continuous: true
       })
-    } else if (!isDataFresh(drowsiness?.timestamp) && drowsyState !== "No Face Detected") {
-        // This 'else if' branch will catch if drowsiness data is stale AND
-        // it wasn't 'No Face Detected' previously.
-        // It's still good to have the explicit check for !isDataFresh.
-    //     currentAlerts.push({
-    //       id: `dashcam-offline-${Date.now()}`,
-    //       type: "Dash Cam Offline",
-    //       severity: "Low",
-    //       description: "Face cam data is stale or offline, cannot detect driver state.",
-    //       time: currentTime,
-    //       continuous: true
-    //     });
     }
+    const activeIncidents = [...currentAlerts, ...recentIncidents]
 
 
-    return NextResponse.json({
+    const response = {
       success: true,
-      alcoholLevel: alcohol?.bacEstimate || 0,
+      alcoholLevel: (alcohol?.alcoholLevel)/180 || 0,
       alcoholTimestamp: alcohol?.timestamp || null,
 
       visibilityScore: visibility?.visibilityScore || 0,
@@ -189,22 +164,37 @@ export async function GET() {
       speed: obd?.speed || 0,
       obdTimestamp: obd?.timestamp || null,
 
-      coordinates: obd?.coordinates || { lat: 0, lng: 0 },
-      isConnected: true, // This generally means the API endpoint is connected, not all sensors
+      coordinates: isDataFresh(obd?.timestamp) ? obd.coordinates : { lat: 48.8584, lng: 2.2945 }, // Default to Eiffel Tower if no data
+      isConnected: true,
       lastUpdate: new Date(),
       driverScore: dailySafetyScore,
-      sharpTurnsToday: 2, // Static for now
+      sharpTurnsToday: 2,
       recentIncidents: recentIncidents.length,
-      lastSharpTurn: { // Static for now
+      lastSharpTurn: {
         severity: "Low",
         description: "Turned at 50 km/h"
       },
-      dataAge: 10, // This is not correctly calculating age; frontend calculates it based on lastUpdate
-      
-      // New fields for enhanced insights
-      activeIncidents: [...currentAlerts, ...recentIncidents],
-      historicalIncidents: recentIncidents
-    })
+      dataAge: 10,
+
+      // Enhanced active incidents
+      activeIncidents: activeIncidents,
+      historicalIncidents: recentIncidents,
+
+      // Debug info
+      debug: {
+        historySuccess: history?.success,
+        totalIncidents: history?.incidents?.length || 0,
+        todayIncidents: history?.incidents?.filter(incident => {
+          const incidentTime = new Date(incident.time)
+          const todayStart = new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate())
+          return incidentTime >= todayStart && incidentTime <= currentTime
+        }).length || 0,
+        currentAlertsCount: currentAlerts.length,
+        recentIncidentsCount: recentIncidents.length,
+        activeIncidentsCount: activeIncidents.length
+      }
+    }
+    return NextResponse.json(response)
   } catch (error) {
     console.error("Dashboard combine failed", error)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })

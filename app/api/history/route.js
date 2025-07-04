@@ -52,7 +52,7 @@ export async function GET(req) {
       const severity = incident.severity.toLowerCase()
       if (severity === "high") penalty += 0.2
       else if (severity === "medium") penalty += 0.05
-      else if (severity === "low") penalty += 0.01
+      else if (severity === "low") penalty += 0
     })
 
     const weeklySafetyScore = Math.max(0, 100 - penalty)
