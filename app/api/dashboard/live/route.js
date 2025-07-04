@@ -4,12 +4,12 @@ import { NextResponse } from "next/server"
 export async function GET() {
   try {
     const sources = [
-      fetch("http://localhost:3000/api/alcohol"),
-      fetch("http://localhost:3000/api/visibility"),
-      fetch("http://localhost:3000/api/drowsiness"),
-      fetch("http://localhost:3000/api/obd"),
-      fetch("http://localhost:3000/api/history")
-    ]
+      fetch("/api/alcohol"),
+      fetch("/api/visibility"),
+      fetch("/api/drowsiness"),
+      fetch("/api/obd"),
+      fetch("/api/history"),
+    ];
 
     const [alcohol, visibility, drowsiness, obd, history] = await Promise.all(
       sources.map(r => r.then(res => res.json()))
@@ -27,7 +27,7 @@ export async function GET() {
     }
 
     const bacEstimate = alcohol?.alcoholLevel || 0
- 
+
     let dailySafetyScore = 100
     let recentIncidents = []
 
@@ -152,7 +152,7 @@ export async function GET() {
 
     const response = {
       success: true,
-      alcoholLevel: (alcohol?.alcoholLevel)/180 || 0,
+      alcoholLevel: (alcohol?.alcoholLevel) / 180 || 0,
       alcoholTimestamp: alcohol?.timestamp || null,
 
       visibilityScore: visibility?.visibilityScore || 0,
