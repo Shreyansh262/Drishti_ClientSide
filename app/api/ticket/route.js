@@ -102,7 +102,7 @@ export async function POST(req) {
       incidentDate: date,
       incidentTime: time,
       status: "pending",
-      priority: "default",
+      priority: "low",
       createdAt: new Date().toISOString(),
       adminResponse: "",
     }
@@ -114,7 +114,7 @@ export async function POST(req) {
 
     const filePath = "/home/fast-and-furious/main/drishti/tickets/tickets.csv"
 
-    await appendToFile(filePath, row)
+    await appendToFile(filePath, row + "\n")
 
 
     return NextResponse.json({ success: true, ticket: newTicket })

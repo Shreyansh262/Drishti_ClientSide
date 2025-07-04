@@ -50,9 +50,9 @@ export async function GET(req) {
     let penalty = 0
     lastWeekIncidents.forEach((incident) => {
       const severity = incident.severity.toLowerCase()
-      if (severity === "high") penalty += 8
-      else if (severity === "medium") penalty += 4
-      else if (severity === "low") penalty += 1
+      if (severity === "high") penalty += 0.2
+      else if (severity === "medium") penalty += 0.05
+      else if (severity === "low") penalty += 0.01
     })
 
     const weeklySafetyScore = Math.max(0, 100 - penalty)

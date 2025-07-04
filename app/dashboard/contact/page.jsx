@@ -178,6 +178,35 @@ export default function ContactPage() {
           </CardContent>
         </Card>
       </div>
+            {/* Second Row: Contact Info (Full Width) */}
+      <div className="w-full">
+        <Card className="p-4 shadow-md bg-card text-card-foreground w-full">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold flex items-center gap-2">
+              <Phone className="h-5 w-5 text-primary" />
+              Get in Touch
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-muted-foreground">
+            <p>
+              We're here to help! Feel free to reach out to us with any questions or
+              issues.
+            </p>
+            <div className="flex items-center gap-3">
+              <Mail className="h-5 w-5 text-blue-500" />
+              <span>support@drishti.com</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Phone className="h-5 w-5 text-green-500" />
+              <span>+91 98765 43210</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <MapPin className="h-5 w-5 text-red-500" />
+              <span>123, Vehicle Safety Rd, New Delhi, India</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

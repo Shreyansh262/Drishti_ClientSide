@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Separator } from "@/components/ui/separator"
+import { Footer } from "@/components/layout/footer"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -13,12 +14,14 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+// import { useTheme } from "next-themes" // This might be used if theme switcher is here
 
 export default function DashboardLayout({ children }) {
   const router = useRouter()
   const pathname = usePathname()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  // const { theme, setTheme } = useTheme() // For theme switching, if needed here
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -29,12 +32,12 @@ export default function DashboardLayout({ children }) {
         setIsAuthenticated(true)
       }
 
-      // Load settings
-      const savedSettings = localStorage.getItem("drishti-settings")
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings)
-        document.documentElement.classList.toggle("dark", settings.darkMode || false)
-      }
+      // REMOVED: Dark mode loading logic, now handled by next-themes via layout.jsx
+      // const savedSettings = localStorage.getItem("drishti-settings")
+      // if (savedSettings) {
+      //   const settings = JSON.parse(savedSettings)
+      //   document.documentElement.classList.toggle("dark", settings.darkMode || false)
+      // }
 
       setIsLoading(false)
     }
@@ -45,18 +48,19 @@ export default function DashboardLayout({ children }) {
     const breadcrumbs = []
 
     if (segments.length > 1) {
-      breadcrumbs.push({ name: "Dashboard", href: "/dashboard" })
-
-      if (segments[1] === "tickets") {
-        breadcrumbs.push({ name: "Support", href: "/dashboard/tickets" })
-        if (segments[2] === "new") {
-          breadcrumbs.push({ name: "New Ticket", href: "/dashboard/tickets/new" })
-        }
-      } else {
-        const pageName = segments[1].charAt(0).toUpperCase() + segments[1].slice(1)
-        breadcrumbs.push({ name: pageName, href: pathname })
-      }
+      breadcrumbs.push({ name: "Home", href: "/dashboard" }) // Assuming dashboard is home
     }
+
+    // Map segments to breadcrumbs (e.g., /dashboard/history -> Home > History)
+    segments.forEach((segment, index) => {
+      if (segment === "dashboard" && index === 0) {
+        // Already added "Home"
+        return
+      }
+      const href = "/" + segments.slice(0, index + 1).join("/")
+      const name = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ")
+      breadcrumbs.push({ name, href })
+    })
 
     return breadcrumbs
   }
@@ -82,7 +86,7 @@ export default function DashboardLayout({ children }) {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background z-20"> {/* Added bg-background and z-20 for header */}
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <Breadcrumb>
@@ -102,7 +106,10 @@ export default function DashboardLayout({ children }) {
             </BreadcrumbList>
           </Breadcrumb>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
+        <div className="flex flex-1 flex-col gap-4 p-4 pb-16 overflow-auto"> {/* Added pb-16 to ensure space for fixed footer, and overflow-auto */}
+          {children}
+        </div>
+        <Footer />
       </SidebarInset>
     </SidebarProvider>
   )

@@ -19,10 +19,10 @@ export default function RootPage() {
   }, [router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-blue-950 dark:to-indigo-900">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Loading Drishti...</p>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto dark:border-blue-300"></div>
+        <p className="mt-4 text-gray-600 dark:text-gray-400">Loading Drishti...</p>
       </div>
     </div>
   )

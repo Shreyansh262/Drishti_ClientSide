@@ -37,18 +37,17 @@
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
 
-    /* Theme colors - Blue (default) */
-    --theme-primary: 59 130 246;
-    --theme-secondary: 147 51 234;
-    --theme-accent: 6 182 212;
+    /* Custom Theme Colors (e.g., for 'blue' theme) */
+    --theme-primary: 217 91% 60%; /* blue-500 */
+    --theme-secondary: 262 83% 58%; /* purple-500 */
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222.2 47.4% 11.2%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 222.2 47.4% 11.2%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 222.2 47.4% 11.2%;
     --popover-foreground: 210 40% 98%;
     --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
@@ -62,89 +61,30 @@
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 215 20.2% 65.1%;
+    --ring: 212.7 26.8% 83.9%;
+
+    /* Custom Theme Colors (for 'dark' variants of custom themes) */
+    --theme-primary: 217 91% 40%; /* darker blue for dark mode */
+    --theme-secondary: 262 83% 40%; /* darker purple for dark mode */
   }
 
-  /* Theme variations */
+  /* Example of theme-specific light/dark colors if needed more granularity */
   .theme-blue {
-    --theme-primary: 59 130 246;
-    --theme-secondary: 147 51 234;
-    --theme-accent: 6 182 212;
+    --theme-primary: 217 91% 60%; /* blue-500 */
+    --theme-secondary: 262 83% 58%; /* purple-500 */
   }
 
-  .theme-purple {
-    --theme-primary: 147 51 234;
-    --theme-secondary: 168 85 247;
-    --theme-accent: 139 92 246;
-  }
-
-  .theme-green {
-    --theme-primary: 34 197 94;
-    --theme-secondary: 16 185 129;
-    --theme-accent: 6 182 212;
-  }
-
-  .theme-orange {
-    --theme-primary: 249 115 22;
-    --theme-secondary: 234 88 12;
-    --theme-accent: 251 146 60;
+  .dark .theme-blue {
+    --theme-primary: 217 91% 40%; /* darker blue for dark mode */
+    --theme-secondary: 262 83% 40%; /* darker purple for dark mode */
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+/* Ensure body uses background and foreground colors */
+body {
+  @apply bg-background text-foreground;
 }
 
-@layer components {
-  .animated-gradient {
-    background: linear-gradient(-45deg, #0f172a, #1e293b, #334155, #475569);
-    background-size: 400% 400%;
-    animation: gradient 15s ease infinite;
-  }
-
-  .dark .animated-gradient {
-    background: linear-gradient(-45deg, #020617, #0f172a, #1e293b, #334155);
-    background-size: 400% 400%;
-    animation: gradient 15s ease infinite;
-  }
-
-  /* Theme-based gradients */
-  .theme-gradient {
-    background: linear-gradient(
-      -45deg,
-      rgb(var(--theme-primary)),
-      rgb(var(--theme-secondary)),
-      rgb(var(--theme-accent)),
-      rgb(var(--theme-primary))
-    );
-    background-size: 400% 400%;
-    animation: gradient 15s ease infinite;
-  }
-
-  .theme-button {
-    background: linear-gradient(45deg, rgb(var(--theme-primary)), rgb(var(--theme-secondary)));
-  }
-
-  .theme-button:hover {
-    background: linear-gradient(45deg, rgb(var(--theme-primary) / 0.9), rgb(var(--theme-secondary) / 0.9));
-  }
-
-  .theme-card {
-    background: linear-gradient(135deg, rgb(var(--theme-primary)), rgb(var(--theme-secondary)));
-  }
-
-  .theme-text {
-    background: linear-gradient(45deg, rgb(var(--theme-primary)), rgb(var(--theme-secondary)));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-}
 
 @keyframes gradient {
   0% {
@@ -194,36 +134,14 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-.dark ::-webkit-scrollbar-track {
-  background: #374151;
+  background: hsl(var(--muted)); /* Use muted for track */
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(45deg, rgb(var(--theme-primary)), rgb(var(--theme-secondary)));
+  background: hsl(var(--primary)); /* Use primary for thumb */
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(45deg, rgb(var(--theme-primary) / 0.8), rgb(var(--theme-secondary) / 0.8));
-}
-
-/* Gradient text */
-.gradient-text {
-  background: linear-gradient(45deg, rgb(var(--theme-primary)), rgb(var(--theme-secondary)));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Hover glow effect */
-.hover-glow:hover {
-  box-shadow: 0 0 20px rgb(var(--theme-primary) / 0.4);
-  transform: translateY(-2px);
-}
-
-.dark .hover-glow:hover {
-  box-shadow: 0 0 20px rgb(var(--theme-primary) / 0.6);
+  background: hsl(var(--primary-foreground)); /* Darker primary on hover */
 }

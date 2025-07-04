@@ -28,11 +28,11 @@ export default function HistoryPage() {
         const res = await fetch(`/api/history?vehicleNumber=${vehicleNumber}`)
         const data = await res.json()
 
-        // Convert string time to Date object
+        // Convert string time to Date object and sort in descending order (most recent first)
         const parsedIncidents = data.incidents.map((incident) => ({
           ...incident,
           time: new Date(incident.time),
-        }))
+        })).sort((a, b) => b.time.getTime() - a.time.getTime()) // Sort in descending order
 
 
         setHistoryData({ ...data, incidents: parsedIncidents })
@@ -63,7 +63,7 @@ export default function HistoryPage() {
     const queryParams = new URLSearchParams({
       issueType: incident.type.toLowerCase().replace(/\s+/g, "-"),
       title: `${incident.type} Incident`,
-      date: new Date(incident.time).toISOString().split("T")[0], // yyyy-mm-dd
+      date: new Date(incident.time).toISOString().split("T")[0], //YYYY-mm-dd
       time: new Date(incident.time).toTimeString().split(" ")[0].slice(0, 5), // HH:MM
     })
 

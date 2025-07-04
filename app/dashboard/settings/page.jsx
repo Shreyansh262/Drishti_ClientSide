@@ -8,10 +8,12 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { Moon, Sun, Bell, Volume2, Shield, Settings, Palette } from "lucide-react"
+import { useTheme } from "next-themes" // Import useTheme
 
 export default function SettingsPage() {
+  const { theme, setTheme } = useTheme() // Use useTheme hook
   const [settings, setSettings] = useState({
-    darkMode: false,
+    // darkMode: false, // Handled by next-themes
     notifications: true,
     soundAlerts: true,
     alertVolume: 75,
@@ -19,230 +21,156 @@ export default function SettingsPage() {
     dataCollection: true,
     language: "en",
     alertSensitivity: "medium",
-    theme: "blue",
+    // theme: "blue", // Handled by next-themes if it controls multiple themes
   })
 
   const [saveStatus, setSaveStatus] = useState("")
 
-  const updateSetting = (key, value) => {
-    const newSettings = { ...settings, [key]: value }
-    setSettings(newSettings)
-
-    // Apply theme changes immediately
-    if (key === "darkMode") {
-      document.documentElement.classList.toggle("dark", value)
+  useEffect(() => {
+    // Load other settings from localStorage, excluding dark mode
+    if (typeof window !== "undefined") {
+      const savedSettings = localStorage.getItem("drishti-settings")
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings)
+        setSettings(prev => ({
+          ...prev,
+          ...parsedSettings,
+          // darkMode: theme === "dark" // Sync internal state with next-themes
+        }))
+      }
     }
+  }, [theme]) // Re-run if theme changes externally (e.g., system preference)
 
-    if (key === "theme") {
-      document.documentElement.className = document.documentElement.className.replace(/theme-\w+/g, "")
-      document.documentElement.classList.add(`theme-${value}`)
+  const updateSetting = (key, value) => {
+    if (key === "darkMode") {
+      setTheme(value ? "dark" : "light") // Use next-themes' setTheme
+      // No need to manually toggle document class
+    } else {
+      setSettings((prev) => ({ ...prev, [key]: value }))
+      // For custom themes beyond light/dark managed by next-themes, keep this logic
+      if (key === "theme") {
+        document.documentElement.className = document.documentElement.className.replace(/theme-\w+/g, "")
+        document.documentElement.classList.add(`theme-${value}`)
+      }
     }
   }
 
   const handleSaveSettings = () => {
+    setIsSubmitting(true)
     // Simulate API call
-    setSaveStatus("saving")
     setTimeout(() => {
-      console.log("Saving settings:", settings)
-      setSaveStatus("saved")
-      setTimeout(() => setSaveStatus(""), 2000)
+      // Save settings (excluding darkMode as it's handled by next-themes' persistence)
+      localStorage.setItem(
+        "drishti-settings",
+        JSON.stringify({
+          notifications: settings.notifications,
+          soundAlerts: settings.soundAlerts,
+          alertVolume: settings.alertVolume,
+          autoSync: settings.autoSync,
+          dataCollection: settings.dataCollection,
+          language: settings.language,
+          alertSensitivity: settings.alertSensitivity,
+          theme: settings.theme, // If you have multiple themes beyond light/dark
+        })
+      )
+      setSaveStatus("success")
+      setIsSubmitting(false)
+      setTimeout(() => setSaveStatus(""), 3000)
     }, 1000)
   }
 
-  const handleResetSettings = () => {
-    const defaultSettings = {
-      darkMode: false,
-      notifications: true,
-      soundAlerts: true,
-      alertVolume: 75,
-      autoSync: true,
-      dataCollection: true,
-      language: "en",
-      alertSensitivity: "medium",
-      theme: "blue",
-    }
-    setSettings(defaultSettings)
-    document.documentElement.classList.remove("dark")
-    document.documentElement.className = document.documentElement.className.replace(/theme-\w+/g, "")
-    document.documentElement.classList.add("theme-blue")
-    setSaveStatus("reset")
-    setTimeout(() => setSaveStatus(""), 2000)
-  }
+  const [isSubmitting, setIsSubmitting] = useState(false) // State for submission status
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 lg:p-8">
-      <div className="space-y-6 max-w-7xl mx-auto">
-        <div className="flex items-center gap-4 mb-8">
-          <div className="p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl text-white shadow-lg">
-            <Settings className="h-8 w-8" />
-          </div>
-          <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Settings
-          </h1>
-        </div>
+    <div className="space-y-6 p-4 md:p-6 bg-background text-foreground"> {/* Added bg-background and text-foreground */}
+      <h1 className="text-3xl font-bold mb-6 flex items-center gap-3">
+        <Settings className="h-7 w-7 text-primary" />
+        Settings
+      </h1>
 
-        {/* Status Message */}
-        {saveStatus && (
-          <div className={`p-4 rounded-lg text-center font-medium transition-all duration-300 ${
-            saveStatus === "saving" ? "bg-blue-100 text-blue-800" :
-            saveStatus === "saved" ? "bg-green-100 text-green-800" :
-            saveStatus === "reset" ? "bg-orange-100 text-orange-800" : ""
-          }`}>
-            {saveStatus === "saving" && "Saving settings..."}
-            {saveStatus === "saved" && "✓ Settings saved successfully!"}
-            {saveStatus === "reset" && "✓ Settings reset to defaults!"}
-          </div>
-        )}
-
-        {/* Appearance Settings */}
-        <Card className="shadow-lg border-0 overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-            <CardTitle className="flex items-center gap-2">
-              <Palette className="h-5 w-5" />
-              Appearance
-            </CardTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Dark Mode Toggle */}
+        <Card className="p-4 shadow-md bg-card text-card-foreground">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg font-semibold">Theme</CardTitle>
+            <Palette className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="p-6 space-y-6 bg-white">
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {settings.darkMode ? 
-                  <Moon className="h-5 w-5 text-slate-600" /> : 
-                  <Sun className="h-5 w-5 text-yellow-500" />
-                }
-                <div>
-                  <Label className="text-base font-medium">Dark Mode</Label>
-                  <p className="text-sm text-gray-500">Switch between light and dark themes</p>
-                </div>
-              </div>
-              <Switch 
-                checked={settings.darkMode} 
-                onCheckedChange={(checked) => updateSetting("darkMode", checked)} 
+              <Label htmlFor="dark-mode" className="flex items-center gap-2">
+                {theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                Dark Mode
+              </Label>
+              <Switch
+                id="dark-mode"
+                checked={theme === "dark"} // Control switch with next-themes' theme
+                onCheckedChange={(checked) => updateSetting("darkMode", checked)}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-base font-medium">Theme Color</Label>
-              <Select value={settings.theme} onValueChange={(value) => updateSetting("theme", value)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="blue">🌊 Ocean Blue</SelectItem>
-                  <SelectItem value="purple">👑 Royal Purple</SelectItem>
-                  <SelectItem value="green">🌿 Nature Green</SelectItem>
-                  <SelectItem value="orange">🌅 Sunset Orange</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </CardContent>
         </Card>
 
-        {/* Notification Settings */}
-        <Card className="shadow-lg border-0 overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white">
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Notifications & Alerts
-            </CardTitle>
+        {/* Notifications */}
+        <Card className="p-4 shadow-md bg-card text-card-foreground">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg font-semibold">Notifications</CardTitle>
+            <Bell className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="p-6 space-y-6 bg-white">
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Bell className="h-5 w-5 text-blue-500" />
-                <div>
-                  <Label className="text-base font-medium">Push Notifications</Label>
-                  <p className="text-sm text-gray-500">Receive alerts for safety incidents</p>
-                </div>
-              </div>
+              <Label htmlFor="notifications">Enable Push Notifications</Label>
               <Switch
+                id="notifications"
                 checked={settings.notifications}
                 onCheckedChange={(checked) => updateSetting("notifications", checked)}
               />
             </div>
-
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Volume2 className="h-5 w-5 text-green-500" />
-                <div>
-                  <Label className="text-base font-medium">Sound Alerts</Label>
-                  <p className="text-sm text-gray-500">Play audio alerts for critical warnings</p>
-                </div>
-              </div>
+              <Label htmlFor="sound-alerts">Sound Alerts</Label>
               <Switch
+                id="sound-alerts"
                 checked={settings.soundAlerts}
                 onCheckedChange={(checked) => updateSetting("soundAlerts", checked)}
               />
             </div>
-
-            <div className="space-y-3">
-              <Label className="text-base font-medium">Alert Volume</Label>
-              <div className="px-3">
+            {settings.soundAlerts && (
+              <div>
+                <Label htmlFor="alert-volume" className="flex items-center gap-2 mb-2">
+                  <Volume2 className="h-4 w-4" />
+                  Alert Volume: {settings.alertVolume}%
+                </Label>
                 <Slider
-                  value={[settings.alertVolume]}
-                  onValueChange={(value) => updateSetting("alertVolume", value[0])}
+                  id="alert-volume"
+                  min={0}
                   max={100}
-                  step={5}
-                  className="w-full"
+                  step={1}
+                  value={[settings.alertVolume]}
+                  onValueChange={([value]) => updateSetting("alertVolume", value)}
                 />
-                <div className="flex justify-between text-sm text-gray-500 mt-2">
-                  <span>Quiet</span>
-                  <span className="font-medium text-blue-600">{settings.alertVolume}%</span>
-                  <span>Loud</span>
-                </div>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-base font-medium">Alert Sensitivity</Label>
-              <Select
-                value={settings.alertSensitivity}
-                onValueChange={(value) => updateSetting("alertSensitivity", value)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">🟢 Low - Only critical alerts</SelectItem>
-                  <SelectItem value="medium">🟡 Medium - Balanced alerts</SelectItem>
-                  <SelectItem value="high">🔴 High - All safety alerts</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Data & Privacy */}
-        <Card className="shadow-lg border-0 overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Data & Privacy
-            </CardTitle>
+        {/* Data & Sync */}
+        <Card className="p-4 shadow-md bg-card text-card-foreground">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg font-semibold">Data & Sync</CardTitle>
+            <Shield className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="p-6 space-y-6 bg-white">
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Shield className="h-5 w-5 text-green-500" />
-                <div>
-                  <Label className="text-base font-medium">Auto Sync</Label>
-                  <p className="text-sm text-gray-500">Automatically sync data from Google Cloud</p>
-                </div>
-              </div>
-              <Switch 
-                checked={settings.autoSync} 
-                onCheckedChange={(checked) => updateSetting("autoSync", checked)} 
+              <Label htmlFor="auto-sync">Auto Sync Data</Label>
+              <Switch
+                id="auto-sync"
+                checked={settings.autoSync}
+                onCheckedChange={(checked) => updateSetting("autoSync", checked)}
               />
             </div>
-
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Shield className="h-5 w-5 text-blue-500" />
-                <div>
-                  <Label className="text-base font-medium">Data Collection</Label>
-                  <p className="text-sm text-gray-500">Allow data collection for improvements</p>
-                </div>
-              </div>
+              <Label htmlFor="data-collection">Data Collection Consent</Label>
               <Switch
+                id="data-collection"
                 checked={settings.dataCollection}
                 onCheckedChange={(checked) => updateSetting("dataCollection", checked)}
               />
@@ -250,56 +178,100 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 lg:gap-6 pt-8">
-          <Button 
-            onClick={handleSaveSettings} 
-            className="flex-1 h-14 text-lg bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg transform hover:scale-[1.02] transition-all duration-200"
-            disabled={saveStatus === "saving"}
-          >
-            {saveStatus === "saving" ? "Saving..." : "Save All Settings"}
-          </Button>
-          <Button 
-            onClick={handleResetSettings} 
-            variant="outline" 
-            className="flex-1 h-14 text-lg border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 transform hover:scale-[1.02] transition-all duration-200"
-            disabled={saveStatus === "saving"}
-          >
-            Reset to Defaults
-          </Button>
-        </div>
+        {/* Language & Preferences */}
+        <Card className="p-4 shadow-md bg-card text-card-foreground">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg font-semibold">Preferences</CardTitle>
+            <Settings className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="language" className="mb-2 block">
+                Language
+              </Label>
+              <Select
+                value={settings.language}
+                onValueChange={(value) => updateSetting("language", value)}
+              >
+                <SelectTrigger id="language">
+                  <SelectValue placeholder="Select language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="hi">Hindi</SelectItem>
+                  <SelectItem value="es">Spanish</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="alert-sensitivity" className="mb-2 block">
+                Alert Sensitivity
+              </Label>
+              <Select
+                value={settings.alertSensitivity}
+                onValueChange={(value) => updateSetting("alertSensitivity", value)}
+              >
+                <SelectTrigger id="alert-sensitivity">
+                  <SelectValue placeholder="Select sensitivity" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Backend Integration Note */}
-        <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg">
+        <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg dark:from-blue-900 dark:to-indigo-950 dark:border-blue-700"> {/* Added dark mode classes for this card */}
           <CardHeader>
-            <CardTitle className="text-blue-800 flex items-center gap-2">
+            <CardTitle className="text-blue-800 flex items-center gap-2 dark:text-blue-200"> {/* Added dark mode text color */}
               <Shield className="h-5 w-5" />
               Backend Integration Notes
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-blue-700 text-sm">
+          <CardContent className="text-blue-700 text-sm dark:text-blue-300"> {/* Added dark mode text color */}
             <p className="font-medium mb-2">This settings page needs backend integration to:</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                <div className="w-2 h-2 bg-blue-400 rounded-full dark:bg-blue-600"></div> {/* Added dark mode background */}
                 <span>Save user preferences to Google Cloud</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                <div className="w-2 h-2 bg-blue-400 rounded-full dark:bg-blue-600"></div>
                 <span>Sync settings across devices</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                <div className="w-2 h-2 bg-blue-400 rounded-full dark:bg-blue-600\"></div>
                 <span>Apply notification preferences</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                <div className="w-2 h-2 bg-blue-400 rounded-full dark:bg-blue-600\"></div>
                 <span>Handle data collection consent</span>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      <div className="mt-8 flex justify-end">
+        <Button onClick={handleSaveSettings} disabled={isSubmitting}>
+          {isSubmitting ? "Saving..." : "Save Settings"}
+        </Button>
+      </div>
+
+      {saveStatus === "success" && (
+        <p className="mt-4 text-center text-green-600 font-medium animate-fadeIn">
+          Settings saved successfully!
+        </p>
+      )}
+      {saveStatus === "error" && (
+        <p className="mt-4 text-center text-red-600 font-medium animate-fadeIn">
+          Failed to save settings. Please try again.
+        </p>
+      )}
     </div>
   )
 }

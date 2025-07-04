@@ -52,9 +52,9 @@ export async function GET() {
       let penalty = 0
       todayIncidents.forEach((incident) => {
         const severity = incident.severity.toLowerCase()
-        if (severity === "high") penalty += 12
-        else if (severity === "medium") penalty += 6
-        else if (severity === "low") penalty += 2
+        if (severity === "high") penalty += 6
+        else if (severity === "medium") penalty += 3
+        else if (severity === "low") penalty += 1
       })
 
       // Check for 1 hour without incidents (bonus points)
@@ -66,7 +66,7 @@ export async function GET() {
       if (recentIncidentsCount === 0 && now.getHours() > 0) {
         // Add bonus for clean driving (every hour without incidents)
         const hoursWithoutIncidents = Math.floor((now - todayStart) / (60 * 60 * 1000))
-        dailySafetyScore += Math.min(hoursWithoutIncidents * 2, 20) // Max 20 bonus points
+        dailySafetyScore += Math.min(hoursWithoutIncidents, 20) // Max 20 bonus points
       }
 
       dailySafetyScore = Math.max(0, Math.min(100, dailySafetyScore - penalty))
@@ -164,14 +164,14 @@ export async function GET() {
         // This 'else if' branch will catch if drowsiness data is stale AND
         // it wasn't 'No Face Detected' previously.
         // It's still good to have the explicit check for !isDataFresh.
-        currentAlerts.push({
-          id: `dashcam-offline-${Date.now()}`,
-          type: "Dash Cam Offline",
-          severity: "Low",
-          description: "Dash cam data is stale or offline, cannot detect driver state.",
-          time: currentTime,
-          continuous: true
-        });
+    //     currentAlerts.push({
+    //       id: `dashcam-offline-${Date.now()}`,
+    //       type: "Dash Cam Offline",
+    //       severity: "Low",
+    //       description: "Face cam data is stale or offline, cannot detect driver state.",
+    //       time: currentTime,
+    //       continuous: true
+    //     });
     }
 
 
