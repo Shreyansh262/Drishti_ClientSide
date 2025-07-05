@@ -39,7 +39,6 @@ export default function DashboardPage() {
     lastSharpTurn: {},
     sharpTurnsToday: 0,
     activeIncidents: [],
-    // historicalIncidents state variable removed as it's merged into activeIncidents display
   })
 
   const getSeverityColor = (severity) => {
@@ -112,8 +111,6 @@ export default function DashboardPage() {
       if (body.success) {
         const now = new Date()
 
-        // NO MORE CLIENT-SIDE 1-MINUTE FILTERING HERE.
-        // This ensures all active incidents from the backend (which includes recent historical) are used.
         const incidentsForDisplay = body.activeIncidents || []
 
         setData({
@@ -132,10 +129,8 @@ export default function DashboardPage() {
           sharpTurnsToday: body.sharpTurnsToday,
           recentIncidents: body.recentIncidents,
           lastSharpTurn: body.lastSharpTurn,
-          // Corrected dataAge calculation: difference between client's current time and backend's last update time
           dataAge: Math.floor((now.getTime() - new Date(body.lastUpdate).getTime()) / 1000),
           activeIncidents: incidentsForDisplay.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()),
-          // historicalIncidents state no longer needed as they are now part of activeIncidents display
         })
       }
     } catch (error) {
@@ -179,8 +174,6 @@ export default function DashboardPage() {
 
   const dataStatus = getDataAgeStatus(data.dataAge)
 
-  // Sort incidents by severity (High -> Medium -> Low) and then by time.
-  // REMOVED .slice(0, 4) to ensure ALL relevant active and historical incidents are shown.
   const sortedIncidents = [...(data.activeIncidents || [])].sort((a, b) => {
     const severityOrder = { high: 3, medium: 2, low: 1 }
     const aSeverity = severityOrder[a.severity?.toLowerCase()] || 0

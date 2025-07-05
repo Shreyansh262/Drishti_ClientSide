@@ -20,6 +20,7 @@ export async function GET() {
     let state = "Unknown"
     if (alertRaw.includes("awake")) state = "Awake"
     else if (alertRaw.includes("drowsiness")) state = "Drowsy"
+    else if (alertRaw.includes("sleepiness")) state = "Sleepy"
     else if (alertRaw.includes("no driver")) state = "No Face Detected"
 
     return NextResponse.json({

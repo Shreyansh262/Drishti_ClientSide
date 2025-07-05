@@ -3,13 +3,18 @@ import { NextResponse } from "next/server"
 
 export async function GET() {
   try {
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000';
+
     const sources = [
-      fetch("/api/alcohol"),
-      fetch("/api/visibility"),
-      fetch("/api/drowsiness"),
-      fetch("/api/obd"),
-      fetch("/api/history"),
+      fetch(`${baseUrl}/api/alcohol`),
+      fetch(`${baseUrl}/api/visibility`),
+      fetch(`${baseUrl}/api/drowsiness`),
+      fetch(`${baseUrl}/api/obd`),
+      fetch(`${baseUrl}/api/history`),
     ];
+
 
     const [alcohol, visibility, drowsiness, obd, history] = await Promise.all(
       sources.map(r => r.then(res => res.json()))
@@ -125,10 +130,21 @@ export async function GET() {
 
     // Drowsiness alert
     const drowsyState = drowsiness?.state || "Awake"
-    if (isDataFresh(drowsiness?.timestamp) && drowsyState !== "Awake" && drowsyState !== "No Face Detected") {
+    if (isDataFresh(drowsiness?.timestamp) && drowsyState == "Drowsy") {
       currentAlerts.push({
         id: `drowsy-${Date.now()}`,
         type: "Driver Drowsiness",
+        severity: "High",
+        description: `Driver state: ${drowsyState}`,
+        time: currentTime,
+        continuous: true
+      })
+    }
+
+    if (isDataFresh(drowsiness?.timestamp) && drowsyState == "Sleepy") {
+      currentAlerts.push({
+        id: `sleepy-${Date.now()}`,
+        type: "Driver Sleepiness",
         severity: "High",
         description: `Driver state: ${drowsyState}`,
         time: currentTime,

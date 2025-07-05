@@ -14,14 +14,12 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-// import { useTheme } from "next-themes" // This might be used if theme switcher is here
 
 export default function DashboardLayout({ children }) {
   const router = useRouter()
   const pathname = usePathname()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  // const { theme, setTheme } = useTheme() // For theme switching, if needed here
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -32,12 +30,6 @@ export default function DashboardLayout({ children }) {
         setIsAuthenticated(true)
       }
 
-      // REMOVED: Dark mode loading logic, now handled by next-themes via layout.jsx
-      // const savedSettings = localStorage.getItem("drishti-settings")
-      // if (savedSettings) {
-      //   const settings = JSON.parse(savedSettings)
-      //   document.documentElement.classList.toggle("dark", settings.darkMode || false)
-      // }
 
       setIsLoading(false)
     }
