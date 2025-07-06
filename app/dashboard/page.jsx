@@ -36,8 +36,6 @@ export default function DashboardPage() {
     lastUpdate: new Date(),
     dataAge: 45, // seconds
     recentIncidents: 0,
-    lastSharpTurn: {},
-    sharpTurnsToday: 0,
     activeIncidents: [],
   })
 
@@ -225,7 +223,7 @@ export default function DashboardPage() {
             { name: "Alcohol Sensor", key: "alcoholTimestamp" }
           ].map((sensor) => {
             const lastTime = data[sensor.key] ? new Date(data[sensor.key]) : null
-            const isOnline = lastTime && (Date.now() - lastTime.getTime()) < 60_000
+            const isOnline = lastTime && (Date.now() - lastTime.getTime()) < 90_000
             return (
               <div
                 key={sensor.key}
@@ -271,8 +269,6 @@ export default function DashboardPage() {
                 </Badge>
               </div>
               <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                <p>Penalties: High -12pts, Medium -6pts, Low -2pts</p>
-                <p>Bonus: +2pts per hour without incidents</p>
               </div>
             </div>
           </CardContent>
