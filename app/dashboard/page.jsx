@@ -126,9 +126,7 @@ export default function DashboardPage() {
           isConnected: true,
           lastUpdate: now,
           driverScore: body.driverScore,
-          sharpTurnsToday: body.sharpTurnsToday,
           recentIncidents: body.recentIncidents,
-          lastSharpTurn: body.lastSharpTurn,
           dataAge: Math.floor((now.getTime() - new Date(body.lastUpdate).getTime()) / 1000),
           activeIncidents: incidentsForDisplay.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()),
         })
@@ -155,7 +153,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchLiveData()
-    const interval = setInterval(fetchLiveData, 2000)
+    const interval = setInterval(fetchLiveData, 4000)
     return () => clearInterval(interval)
   }, [])
 

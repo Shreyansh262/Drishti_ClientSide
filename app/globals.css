@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-
+/* Existing animations from your global.css */
 @keyframes fade-in-out {
   0% { opacity: 0; transform: translateY(-5px); }
   10% { opacity: 1; transform: translateY(0); }
@@ -144,4 +144,122 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--primary-foreground)); /* Darker primary on hover */
+}
+
+/* --- NEW ADDITIONS FOR GAMIFIED BACKGROUND AND UI --- */
+
+/* Keyframes for the gamified background animation */
+@keyframes techGridMovement {
+  0% {
+    background-position: 0% 0%, 0% 0%;
+  }
+  100% {
+    background-position: 100% 100%, 100% 100%; /* Moves diagonally */
+  }
+}
+
+@keyframes pulse-slight {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+@keyframes ping-slow {
+  0% {
+    transform: scale(0.2);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(0.2);
+    opacity: 0.8;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.animate-pulse-slight {
+  animation: pulse-slight 2s infinite ease-in-out;
+}
+
+.animate-ping-slow {
+  animation: ping-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-shake {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+@keyframes shake {
+  10%, 90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+  20%, 80% {
+    transform: translate3d(2px, 0, 0);
+  }
+  30%, 50%, 70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+  40%, 60% {
+    transform: translate3d(4px, 0, 0);
+  }
+}
+
+
+/* Gamified Animated Background */
+.animated-tech-grid-background {
+  background-color: hsl(var(--background)); /* Base background color */
+  background-image:
+    linear-gradient(to right, hsla(var(--theme-primary), 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, hsla(var(--theme-primary), 0.1) 1px, transparent 1px);
+  background-size: 50px 50px; /* Size of grid cells */
+  animation: techGridMovement 60s linear infinite; /* Adjust speed as needed */
+  opacity: 0.3; /* Make it subtle */
+}
+
+.dark .animated-tech-grid-background {
+    background-image:
+        linear-gradient(to right, hsla(var(--theme-primary), 0.15) 1px, transparent 1px),
+        linear-gradient(to bottom, hsla(var(--theme-primary), 0.15) 1px, transparent 1px);
+    opacity: 0.4;
+}
+
+/* Utility for text shadow */
+.drop-shadow-md {
+  text-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Custom theme color utility classes (for use on elements that need the theme color) */
+.theme-card-bg {
+    background-color: hsl(var(--theme-primary));
+}
+.theme-text-color {
+    color: hsl(var(--theme-primary));
+}
+.theme-button-bg {
+    background-color: hsl(var(--theme-primary));
+}
+/* You might want a gradient version for buttons */
+.theme-button-gradient {
+    background: linear-gradient(to right, hsl(var(--theme-primary)), hsl(var(--theme-secondary)));
+}
+.theme-button-gradient:hover {
+    background: linear-gradient(to right, hsl(var(--theme-primary) / 0.9), hsl(var(--theme-secondary) / 0.9));
 }

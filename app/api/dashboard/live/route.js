@@ -52,9 +52,9 @@ export async function GET() {
       let penalty = 0
       todayIncidents.forEach((incident) => {
         const severity = incident.severity.toLowerCase()
-        if (severity === "high") penalty += 6
-        else if (severity === "medium") penalty += 3
-        else if (severity === "low") penalty += 1
+        if (severity === "high") penalty += 0.2
+        else if (severity === "medium") penalty += 0.05
+        else if (severity === "low") penalty += 0
       })
 
       // Check for 1 hour without incidents (bonus points)
@@ -102,73 +102,73 @@ export async function GET() {
     // 🚨 Check for current live alerts
     const currentAlerts = []
 
-    // High speed alert
-    const currentSpeed = obd?.speed || 0
-    if (isDataFresh(obd?.timestamp) && currentSpeed > 80) {
-      currentAlerts.push({
-        id: `speed-${Date.now()}`,
-        type: "High Speed",
-        severity: currentSpeed > 130 ? "High" : "Medium",
-        description: `Driving at ${currentSpeed} km/h`,
-        time: currentTime,
-        continuous: true
-      })
-    }
+    // // High speed alert
+    // const currentSpeed = obd?.speed || 0
+    // if (isDataFresh(obd?.timestamp) && currentSpeed > 80) {
+    //   currentAlerts.push({
+    //     id: `speed-${Date.now()}`,
+    //     type: "High Speed",
+    //     severity: currentSpeed > 130 ? "High" : "Medium",
+    //     description: `Driving at ${currentSpeed} km/h`,
+    //     time: currentTime,
+    //     continuous: true
+    //   })
+    // }
 
-    // Low visibility alert
-    const visScore = visibility?.visibilityScore || 100
-    if (isDataFresh(visibility?.timestamp) && visScore < 60) {
-      currentAlerts.push({
-        id: `visibility-${Date.now()}`,
-        type: "Low Visibility",
-        severity: visScore < 30 ? "High" : "Medium",
-        description: `Visibility: ${visScore}%`,
-        time: currentTime,
-        continuous: true
-      })
-    }
+    // // Low visibility alert
+    // const visScore = visibility?.visibilityScore || 100
+    // if (isDataFresh(visibility?.timestamp) && visScore < 60) {
+    //   currentAlerts.push({
+    //     id: `visibility-${Date.now()}`,
+    //     type: "Low Visibility",
+    //     severity: visScore < 30 ? "High" : "Medium",
+    //     description: `Visibility: ${visScore}%`,
+    //     time: currentTime,
+    //     continuous: true
+    //   })
+    // }
 
-    // Drowsiness alert
-    const drowsyState = drowsiness?.state || "Awake"
-    if (isDataFresh(drowsiness?.timestamp) && drowsyState == "Drowsy") {
-      currentAlerts.push({
-        id: `drowsy-${Date.now()}`,
-        type: "Driver Drowsiness",
-        severity: "High",
-        description: `Driver state: ${drowsyState}`,
-        time: currentTime,
-        continuous: true
-      })
-    }
+    // // Drowsiness alert
+    // const drowsyState = drowsiness?.state || "Awake"
+    // if (isDataFresh(drowsiness?.timestamp) && drowsyState == "Drowsy") {
+    //   currentAlerts.push({
+    //     id: `drowsy-${Date.now()}`,
+    //     type: "Driver Drowsiness",
+    //     severity: "High",
+    //     description: `Driver state: ${drowsyState}`,
+    //     time: currentTime,
+    //     continuous: true
+    //   })
+    // }
 
-    if (isDataFresh(drowsiness?.timestamp) && drowsyState == "Sleepy") {
-      currentAlerts.push({
-        id: `sleepy-${Date.now()}`,
-        type: "Driver Sleepiness",
-        severity: "High",
-        description: `Driver state: ${drowsyState}`,
-        time: currentTime,
-        continuous: true
-      })
-    }
+    // if (isDataFresh(drowsiness?.timestamp) && drowsyState == "Sleepy") {
+    //   currentAlerts.push({
+    //     id: `sleepy-${Date.now()}`,
+    //     type: "Driver Sleepiness",
+    //     severity: "High",
+    //     description: `Driver state: ${drowsyState}`,
+    //     time: currentTime,
+    //     continuous: true
+    //   })
+    // }
 
-    // No face detected alert
-    if (isDataFresh(drowsiness?.timestamp) && drowsyState === "No Face Detected") {
-      currentAlerts.push({
-        id: `noface-${Date.now()}`,
-        type: "Driver Not Detected",
-        severity: "Low",
-        description: "No face detected in camera",
-        time: currentTime,
-        continuous: true
-      })
-    }
+    // // No face detected alert
+    // if (isDataFresh(drowsiness?.timestamp) && drowsyState === "No Face Detected") {
+    //   currentAlerts.push({
+    //     id: `noface-${Date.now()}`,
+    //     type: "Driver Not Detected",
+    //     severity: "Low",
+    //     description: "No face detected in camera",
+    //     time: currentTime,
+    //     continuous: true
+    //   })
+    // }
     const activeIncidents = [...currentAlerts, ...recentIncidents]
 
 
     const response = {
       success: true,
-      alcoholLevel: (alcohol?.alcoholLevel) / 180 || 0,
+      alcoholLevel: (alcohol?.alcoholLevel) / 1800 || 0,
       alcoholTimestamp: alcohol?.timestamp || null,
 
       visibilityScore: visibility?.visibilityScore || 0,
@@ -184,12 +184,7 @@ export async function GET() {
       isConnected: true,
       lastUpdate: new Date(),
       driverScore: dailySafetyScore,
-      sharpTurnsToday: 2,
       recentIncidents: recentIncidents.length,
-      lastSharpTurn: {
-        severity: "Low",
-        description: "Turned at 50 km/h"
-      },
       dataAge: 10,
 
       // Enhanced active incidents

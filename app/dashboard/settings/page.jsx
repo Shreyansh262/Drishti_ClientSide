@@ -224,36 +224,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Backend Integration Note */}
-        <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg dark:from-blue-900 dark:to-indigo-950 dark:border-blue-700"> {/* Added dark mode classes for this card */}
-          <CardHeader>
-            <CardTitle className="text-blue-800 flex items-center gap-2 dark:text-blue-200"> {/* Added dark mode text color */}
-              <Shield className="h-5 w-5" />
-              Backend Integration Notes
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-blue-700 text-sm dark:text-blue-300"> {/* Added dark mode text color */}
-            <p className="font-medium mb-2">This settings page needs backend integration to:</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full dark:bg-blue-600"></div> {/* Added dark mode background */}
-                <span>Save user preferences to Google Cloud</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full dark:bg-blue-600"></div>
-                <span>Sync settings across devices</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full dark:bg-blue-600\"></div>
-                <span>Apply notification preferences</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full dark:bg-blue-600\"></div>
-                <span>Handle data collection consent</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <div className="mt-8 flex justify-end">
