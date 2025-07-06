@@ -168,7 +168,7 @@ export async function GET() {
 
     const response = {
       success: true,
-      alcoholLevel: (alcohol?.alcoholLevel) / 1800 || 0,
+      alcoholLevel: (alcohol?.alcoholLevel) / 180 || 0,
       alcoholTimestamp: alcohol?.timestamp || null,
 
       visibilityScore: visibility?.visibilityScore || 0,

@@ -55,7 +55,7 @@ export async function GET(req) {
       else if (severity === "low") penalty += 0
     })
 
-    const weeklySafetyScore = Math.max(0, 100 - (penalty/7))
+    const weeklySafetyScore = (Math.max(0, 100 - (penalty/7))).toFixed(2)
 
     return NextResponse.json({
       success: true,

@@ -259,7 +259,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-center">
               <div className={`text-6xl font-bold mb-4 ${getScoreColor(data.driverScore)}`}>{data.driverScore}</div>
-              <Progress value={data.driverScore} className="h-3 mb-4" />
+              <Progress value={data.driverScore.toFixed(2)} className="h-3 mb-4" />
               <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
                 <span>Today's incidents: {data.recentIncidents}</span>
                 <Badge
