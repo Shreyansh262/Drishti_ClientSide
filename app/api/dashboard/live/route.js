@@ -65,106 +65,17 @@ export async function GET() {
 
       if (recentIncidentsCount === 0 && now.getHours() > 0) {
         const hoursWithoutIncidents = Math.floor((now - todayStart) / (60 * 60 * 1000))
-        dailySafetyScore += Math.min(hoursWithoutIncidents, 20)
+        dailySafetyScore += (Math.min(hoursWithoutIncidents, 20))/2
       }
 
       dailySafetyScore = Math.max(0, Math.min(100, dailySafetyScore - penalty))
 
-      // Strategy 1: Last 30 minutes
-      const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000)
-      let filteredIncidents = todayIncidents.filter(incident =>
-        new Date(incident.time) >= thirtyMinutesAgo
-      )
-      // Strategy 2: Last 2 hours if no recent incidents
-      if (filteredIncidents.length === 0) {
-        const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000)
-        filteredIncidents = todayIncidents.filter(incident =>
-          new Date(incident.time) >= twoHoursAgo
-        )
-      }
-
       // Strategy 3: Just show the most recent 4 incidents from today
-      if (filteredIncidents.length === 0 && todayIncidents.length > 0) {
-        filteredIncidents = todayIncidents.slice(0, 4)
-      }
-
-      // Strategy 4: Show ALL incidents from history (for debugging)
-      if (filteredIncidents.length === 0 && history.incidents.length > 0) {
-        filteredIncidents = history.incidents
-          .sort((a, b) => new Date(b.time) - new Date(a.time))
-          .slice(0, 4)
-      }
-
-      recentIncidents = filteredIncidents.slice(0, 4)
-
+      recentIncidents = todayIncidents.slice(0, 4)
     }
-
     // 🚨 Check for current live alerts
-    const currentAlerts = []
 
-    // // High speed alert
-    // const currentSpeed = obd?.speed || 0
-    // if (isDataFresh(obd?.timestamp) && currentSpeed > 80) {
-    //   currentAlerts.push({
-    //     id: `speed-${Date.now()}`,
-    //     type: "High Speed",
-    //     severity: currentSpeed > 130 ? "High" : "Medium",
-    //     description: `Driving at ${currentSpeed} km/h`,
-    //     time: currentTime,
-    //     continuous: true
-    //   })
-    // }
-
-    // // Low visibility alert
-    // const visScore = visibility?.visibilityScore || 100
-    // if (isDataFresh(visibility?.timestamp) && visScore < 60) {
-    //   currentAlerts.push({
-    //     id: `visibility-${Date.now()}`,
-    //     type: "Low Visibility",
-    //     severity: visScore < 30 ? "High" : "Medium",
-    //     description: `Visibility: ${visScore}%`,
-    //     time: currentTime,
-    //     continuous: true
-    //   })
-    // }
-
-    // // Drowsiness alert
-    // const drowsyState = drowsiness?.state || "Awake"
-    // if (isDataFresh(drowsiness?.timestamp) && drowsyState == "Drowsy") {
-    //   currentAlerts.push({
-    //     id: `drowsy-${Date.now()}`,
-    //     type: "Driver Drowsiness",
-    //     severity: "High",
-    //     description: `Driver state: ${drowsyState}`,
-    //     time: currentTime,
-    //     continuous: true
-    //   })
-    // }
-
-    // if (isDataFresh(drowsiness?.timestamp) && drowsyState == "Sleepy") {
-    //   currentAlerts.push({
-    //     id: `sleepy-${Date.now()}`,
-    //     type: "Driver Sleepiness",
-    //     severity: "High",
-    //     description: `Driver state: ${drowsyState}`,
-    //     time: currentTime,
-    //     continuous: true
-    //   })
-    // }
-
-    // // No face detected alert
-    // if (isDataFresh(drowsiness?.timestamp) && drowsyState === "No Face Detected") {
-    //   currentAlerts.push({
-    //     id: `noface-${Date.now()}`,
-    //     type: "Driver Not Detected",
-    //     severity: "Low",
-    //     description: "No face detected in camera",
-    //     time: currentTime,
-    //     continuous: true
-    //   })
-    // }
-    const activeIncidents = [...currentAlerts, ...recentIncidents]
-
+    const activeIncidents = [...recentIncidents]
 
     const response = {
       success: true,
@@ -191,19 +102,6 @@ export async function GET() {
       activeIncidents: activeIncidents,
       historicalIncidents: recentIncidents,
 
-      // Debug info
-      debug: {
-        historySuccess: history?.success,
-        totalIncidents: history?.incidents?.length || 0,
-        todayIncidents: history?.incidents?.filter(incident => {
-          const incidentTime = new Date(incident.time)
-          const todayStart = new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate())
-          return incidentTime >= todayStart && incidentTime <= currentTime
-        }).length || 0,
-        currentAlertsCount: currentAlerts.length,
-        recentIncidentsCount: recentIncidents.length,
-        activeIncidentsCount: activeIncidents.length
-      }
     }
     return NextResponse.json(response)
   } catch (error) {

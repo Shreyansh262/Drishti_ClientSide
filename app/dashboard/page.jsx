@@ -170,16 +170,10 @@ export default function DashboardPage() {
 
   const dataStatus = getDataAgeStatus(data.dataAge)
 
-  const sortedIncidents = [...(data.activeIncidents || [])].sort((a, b) => {
-    const severityOrder = { high: 3, medium: 2, low: 1 }
-    const aSeverity = severityOrder[a.severity?.toLowerCase()] || 0
-    const bSeverity = severityOrder[b.severity?.toLowerCase()] || 0
+  const sortedIncidents = [...(data.activeIncidents || [])].sort(
+    (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()
+  )
 
-    if (aSeverity !== bSeverity) {
-      return bSeverity - aSeverity
-    }
-    return new Date(b.time).getTime() - new Date(a.time).getTime()
-  })
 
   const highestSeverity = getHighestSeverity(sortedIncidents)
 
@@ -227,7 +221,7 @@ export default function DashboardPage() {
             return (
               <div
                 key={sensor.key}
-                className={`p-4 rounded-md border ${isOnline ? "bg-green-50 border-green-300 dark:bg-green-900 dark:border-green-700" : "bg-red-50 border-red-300 dark:bg-red-900 dark:border-red-700"
+                className={`p-4 rounded-md border ${isOnline ? "bg-green-50 border-green-300 dark:bg-green-800 dark:border-green-600" : "bg-red-50 border-red-300 dark:bg-red-800 dark:border-red-600"
                   }`}
               >
                 <h4 className="font-medium text-gray-700 dark:text-gray-200 mb-1">{sensor.name}</h4>
@@ -238,8 +232,9 @@ export default function DashboardPage() {
                   {isOnline ? "Online" : "Offline"}
                 </Badge>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Last update: {lastTime ? lastTime.toLocaleTimeString() : "N/A"}
+                  Last update: {lastTime ? formatTimeAgo(lastTime) : "N/A"}
                 </p>
+
               </div>
             )
           })}
@@ -276,24 +271,24 @@ export default function DashboardPage() {
 
         {/* Enhanced Live Incidents Card (now includes recent historical) */}
         <Card className={`border ${highestSeverity === "high" ? "bg-red-50 border-red-500 dark:bg-red-900 dark:border-red-700" :
-            highestSeverity === "medium" ? "bg-yellow-50 border-yellow-500 dark:bg-yellow-900 dark:border-yellow-700" :
-              highestSeverity === "low" ? "bg-blue-50 border-blue-500 dark:bg-blue-900 dark:border-blue-700" :
-                "bg-green-50 border-green-500 dark:bg-green-900 dark:border-green-700"
+          highestSeverity === "medium" ? "bg-yellow-50 border-yellow-500 dark:bg-yellow-900 dark:border-yellow-700" :
+            highestSeverity === "low" ? "bg-blue-50 border-blue-500 dark:bg-blue-900 dark:border-blue-700" :
+              "bg-green-50 border-green-500 dark:bg-green-900 dark:border-green-700"
           }`}>
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-gray-800 dark:text-black">
               <div className="flex items-center gap-2">
                 <Shield className={`h-5 w-5 ${highestSeverity === "high" ? "text-red-600 dark:text-red-400" :
-                    highestSeverity === "medium" ? "text-yellow-600 dark:text-yellow-400" :
-                      highestSeverity === "low" ? "text-blue-600 dark:text-blue-400" :
-                        "text-green-600 dark:text-green-400"
+                  highestSeverity === "medium" ? "text-yellow-600 dark:text-yellow-400" :
+                    highestSeverity === "low" ? "text-blue-600 dark:text-blue-400" :
+                      "text-green-600 dark:text-green-400"
                   }`} />
                 Live Safety Alerts
               </div>
               <Badge className={`${highestSeverity === "high" ? "bg-red-600" :
-                  highestSeverity === "medium" ? "bg-yellow-600" :
-                    highestSeverity === "low" ? "bg-blue-600" :
-                      "bg-green-600"
+                highestSeverity === "medium" ? "bg-yellow-600" :
+                  highestSeverity === "low" ? "bg-blue-600" :
+                    "bg-green-600"
                 } text-white`}>
                 {sortedIncidents.length > 0 ? `${sortedIncidents.length} Active` : "All Clear"}
               </Badge>
@@ -342,7 +337,7 @@ export default function DashboardPage() {
             {sortedIncidents.length > 0 && (
               <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
                 <p className="text-xs text-gray-500 text-center dark:text-gray-400">
-                  🔴 High alerts  • 🟡 Medium alerts • 🔵 Low alerts 
+                  🔴 High alerts  • 🟡 Medium alerts • 🔵 Low alerts
                 </p>
               </div>
             )}
