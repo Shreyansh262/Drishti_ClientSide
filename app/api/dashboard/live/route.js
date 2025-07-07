@@ -1,18 +1,37 @@
-// route.js - Fixed version with proper error handling
+// route.js - Complete fixed version with authentication forwarding
 import { NextResponse } from "next/server"
 
-export async function GET() {
+export async function GET(request) {
   try {
     const baseUrl = process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
       : 'http://localhost:3000';
 
+    // Forward authentication headers from the original request
+    const authHeaders = {};
+    const authorization = request.headers.get('authorization');
+    const apiKey = request.headers.get('x-api-key');
+    const cookie = request.headers.get('cookie');
+    
+    if (authorization) authHeaders['Authorization'] = authorization;
+    if (apiKey) authHeaders['X-API-Key'] = apiKey;
+    if (cookie) authHeaders['Cookie'] = cookie;
+
+    console.log('Auth headers being forwarded:', Object.keys(authHeaders));
+
+    const fetchOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders,
+      }
+    };
+
     const sources = [
-      fetch(`${baseUrl}/api/alcohol`),
-      fetch(`${baseUrl}/api/visibility`),
-      fetch(`${baseUrl}/api/drowsiness`),
-      fetch(`${baseUrl}/api/obd`),
-      fetch(`${baseUrl}/api/history`),
+      fetch(`${baseUrl}/api/alcohol`, fetchOptions),
+      fetch(`${baseUrl}/api/visibility`, fetchOptions),
+      fetch(`${baseUrl}/api/drowsiness`, fetchOptions),
+      fetch(`${baseUrl}/api/obd`, fetchOptions),
+      fetch(`${baseUrl}/api/history`, fetchOptions),
     ];
 
     // Enhanced error handling for each API call
