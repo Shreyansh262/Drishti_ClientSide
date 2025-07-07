@@ -1,4 +1,4 @@
-// route.js - Debug version to trace the issue
+// route.js - Fixed version with proper error handling
 import { NextResponse } from "next/server"
 
 export async function GET() {
@@ -15,10 +15,47 @@ export async function GET() {
       fetch(`${baseUrl}/api/history`),
     ];
 
+    // Enhanced error handling for each API call
+    const results = await Promise.allSettled(sources);
+    
+    const [alcoholResult, visibilityResult, drowsinessResult, obdResult, historyResult] = results;
 
-    const [alcohol, visibility, drowsiness, obd, history] = await Promise.all(
-      sources.map(r => r.then(res => res.json()))
-    )
+    // Safe JSON parsing with fallbacks
+    const safeParseJSON = async (result, fallback = {}) => {
+      if (result.status === 'rejected') {
+        console.error('Fetch failed:', result.reason);
+        return fallback;
+      }
+      
+      try {
+        const response = result.value;
+        if (!response.ok) {
+          console.error(`HTTP Error: ${response.status} ${response.statusText}`);
+          return fallback;
+        }
+        
+        const text = await response.text();
+        
+        // Check if response is HTML (common error indicator)
+        if (text.trim().startsWith('<!') || text.trim().startsWith('<html')) {
+          console.error('Received HTML instead of JSON:', text.substring(0, 100));
+          return fallback;
+        }
+        
+        return JSON.parse(text);
+      } catch (error) {
+        console.error('JSON parse error:', error);
+        return fallback;
+      }
+    };
+
+    const [alcohol, visibility, drowsiness, obd, history] = await Promise.all([
+      safeParseJSON(alcoholResult, { alcoholLevel: 0, timestamp: null }),
+      safeParseJSON(visibilityResult, { visibilityScore: 0, timestamp: null }),
+      safeParseJSON(drowsinessResult, { state: "Awake", timestamp: null }),
+      safeParseJSON(obdResult, { speed: 0, timestamp: null, coordinates: { lat: 48.8584, lng: 2.2945 } }),
+      safeParseJSON(historyResult, { success: false, incidents: [] })
+    ]);
 
     // Define a freshness threshold (e.g., 15 seconds)
     const DATA_FRESHNESS_THRESHOLD_MS = 15 * 1000 // 15 seconds
@@ -47,7 +84,6 @@ export async function GET() {
         return isToday
       }).sort((a, b) => new Date(b.time) - new Date(a.time))
 
-
       // Calculate penalties for today
       let penalty = 0
       todayIncidents.forEach((incident) => {
@@ -73,8 +109,8 @@ export async function GET() {
       // Strategy 3: Just show the most recent 4 incidents from today
       recentIncidents = todayIncidents.slice(0, 4)
     }
+    
     // 🚨 Check for current live alerts
-
     const activeIncidents = [...recentIncidents]
 
     const response = {
@@ -101,8 +137,8 @@ export async function GET() {
       // Enhanced active incidents
       activeIncidents: activeIncidents,
       historicalIncidents: recentIncidents,
-
     }
+    
     return NextResponse.json(response)
   } catch (error) {
     console.error("Dashboard combine failed", error)
