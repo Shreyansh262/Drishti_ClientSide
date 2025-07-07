@@ -7,21 +7,30 @@ export async function GET(request) {
       ? `https://${process.env.VERCEL_URL}`
       : 'http://localhost:3000';
 
+    // DEBUG: Log all incoming headers
+    console.log('All incoming headers:');
+    for (const [key, value] of request.headers.entries()) {
+      console.log(`${key}: ${value}`);
+    }
+
     // Forward authentication headers from the original request
     const authHeaders = {};
     const authorization = request.headers.get('authorization');
     const apiKey = request.headers.get('x-api-key');
     const cookie = request.headers.get('cookie');
+    const bearer = request.headers.get('bearer');
     
     if (authorization) authHeaders['Authorization'] = authorization;
     if (apiKey) authHeaders['X-API-Key'] = apiKey;
     if (cookie) authHeaders['Cookie'] = cookie;
+    if (bearer) authHeaders['Bearer'] = bearer;
 
     console.log('Auth headers being forwarded:', Object.keys(authHeaders));
 
     const fetchOptions = {
       headers: {
         'Content-Type': 'application/json',
+        'X-Internal-Call': 'dashboard-combine',
         ...authHeaders,
       }
     };
