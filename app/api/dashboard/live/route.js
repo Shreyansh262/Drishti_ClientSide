@@ -198,7 +198,8 @@ export async function GET(request) {
     // Check each result. If fulfilled, assign its value to dashboardData.
     // If rejected, log the error but allow the rest of the dashboard to function.
     if (alcoholResult.status === 'fulfilled' && alcoholResult.value) {
-      dashboardData.alcoholLevel = alcoholResult.value.level;
+      // ✅ FIX: Divide alcohol level by 180 here
+      dashboardData.alcoholLevel = alcoholResult.value.level / 180;
       dashboardData.alcoholTimestamp = alcoholResult.value.timestamp;
     } else if (alcoholResult.status === 'rejected') {
       console.error("Dashboard API: Alcohol data fetch rejected:", alcoholResult.reason);
