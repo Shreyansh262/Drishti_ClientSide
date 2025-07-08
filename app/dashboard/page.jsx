@@ -102,12 +102,13 @@ export default function DashboardPage() {
         const now = new Date().toISOString()
         const incidentsForDisplay = body.activeIncidents || []
         const obdTime = body.obdTimestamp ? new Date(body.obdTimestamp.replace('+05:30', '')) : null
-        const ageMs = obdTime && !isNaN(obdTime.getTime()) ? getIstNow().getTime() - obdTime.getTime() : Infinity
+        // Fix OBD age calculation - both times should be in UTC for comparison
+        const ageMs = obdTime && !isNaN(obdTime.getTime()) ? new Date().getTime() - obdTime.getTime() : Infinity
         console.log(`OBD - Client Age: ${ageMs / 1000}s, IsConnected: ${body.isConnected}`)
 
         setData({
           alcoholLevel: parseFloat(body.alcoholLevel) || 0.0,
-          alcoholTimestamp: body.alcoholTimestamp ? body.alcoholTimestamp.replace('+05:30', '') : null,
+          alcoholTimestamp: body.alcoholTimestamp,
           visibilityScore: body.visibilityScore || 0,
           frontcamTimestamp: body.frontcamTimestamp,
           drowsinessState: body.drowsinessState || "Awake",
@@ -119,7 +120,7 @@ export default function DashboardPage() {
           lastUpdate: now,
           driverScore: body.driverScore || 100,
           recentIncidents: body.recentIncidents || 0,
-          dataAge: body.lastUpdate ? Math.floor((getIstNow().getTime() - new Date(body.lastUpdate.replace('+05:30', '')).getTime()) / 1000) : 45,
+          dataAge: body.lastUpdate ? Math.floor((new Date().getTime() - new Date(body.lastUpdate.replace('+05:30', '')).getTime()) / 1000) : 45,
           activeIncidents: incidentsForDisplay.sort((a, b) => new Date(b.time.replace('+05:30', '') || now).getTime() - new Date(a.time.replace('+05:30', '') || now).getTime()),
         })
       } else {
@@ -175,17 +176,28 @@ export default function DashboardPage() {
   // Format timestamp to "01:23 PM" format for all sensors
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return "N/A";
-    const date = new Date(timestamp.replace('+05:30', ''));
-    if (isNaN(date.getTime())) return "Invalid";
-    return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }); // e.g., "01:23 PM"
+    // Remove the +05:30 suffix to get the UTC time
+    const utcDate = new Date(timestamp.replace('+05:30', ''));
+    if (isNaN(utcDate.getTime())) return "Invalid";
+    
+    // Convert UTC to IST for display
+    const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+    return istDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }); // e.g., "01:23 PM"
   };
 
   // Check if sensor is online based on age (90,000 ms = 1.5 minutes threshold)
   const isSensorOnline = (timestamp) => {
     if (!timestamp) return false;
-    const date = new Date(timestamp.replace('+05:30', ''));
-    if (isNaN(date.getTime())) return false;
-    const ageMs = getIstNow().getTime() - date.getTime();
+    // Remove the +05:30 suffix to get the UTC time
+    const utcDate = new Date(timestamp.replace('+05:30', ''));
+    if (isNaN(utcDate.getTime())) return false;
+    
+    // Get current UTC time for comparison
+    const nowUtc = new Date();
+    const ageMs = nowUtc.getTime() - utcDate.getTime();
+    
+    console.log(`Sensor Online Check - Timestamp: ${timestamp}, UTC: ${utcDate.toISOString()}, Now UTC: ${nowUtc.toISOString()}, Age: ${ageMs / 1000}s`);
+    
     return ageMs < 90_000; // Online if less than 1.5 minutes old
   };
 

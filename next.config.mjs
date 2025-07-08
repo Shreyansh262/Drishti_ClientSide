@@ -9,7 +9,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-
+  experimental: {
+    serverComponentsExternalPackages: ['ssh2']
+  },
   // THIS IS THE CRUCIAL PART YOU NEED TO ADD/ENSURE IS PRESENT
   webpack: (config, { isServer }) => {
     // Only apply this for server-side builds (API routes, getServerSideProps, etc.)
@@ -20,6 +22,10 @@ const nextConfig = {
         test: /\.node$/,
         loader: 'node-loader',
       });
+      
+      // Exclude problematic modules from bundling
+      config.externals = config.externals || [];
+      config.externals.push('ssh2');
     }
 
     // Always return the modified config

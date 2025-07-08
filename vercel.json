@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "app/api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
+  "build": {
+    "env": {
+      "NEXT_TELEMETRY_DISABLED": "1"
+    }
+  }
+}
