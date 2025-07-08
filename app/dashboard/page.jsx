@@ -169,7 +169,7 @@ export default function DashboardPage() {
 
   const sortedIncidents = [...(data.activeIncidents || [])].sort(
     (a, b) => new Date(b.time.replace('+05:30', '') || data.lastUpdate).getTime() - new Date(a.time.replace('+05:30', '') || data.lastUpdate).getTime()
-  )
+  ).slice(0, 4) // Show only 4 most recent incidents
 
   const highestSeverity = getHighestSeverity(sortedIncidents)
 
@@ -315,7 +315,7 @@ export default function DashboardPage() {
                   highestSeverity === "low" ? "bg-blue-600" :
                     "bg-green-600"
                 } text-white`}>
-                {sortedIncidents.length > 0 ? `${sortedIncidents.length} Active` : "All Clear"}
+                {sortedIncidents.length > 0 ? `${sortedIncidents.length} Recent` : "All Clear"}
               </Badge>
             </CardTitle>
           </CardHeader>

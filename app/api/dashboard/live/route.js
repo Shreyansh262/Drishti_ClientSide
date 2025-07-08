@@ -196,9 +196,27 @@ export async function GET() {
           const [header, ...rows] = lines;
           const all = rows.map((line, i) => {
             const [dt, type, severity, loc, desc] = line.split(",");
-            const time = new Date(dt); // Already in IST
-            return !isNaN(time.getTime()) ? {
-              id: i + 1, type: type.trim(), severity: severity.trim(), location: loc.trim(), description: desc.trim(), time: time.toISOString() + '+05:30'
+            let finalTimestamp = null;
+            
+            // Check if timestamp already has timezone info
+            if (dt && dt.includes('+05:30')) {
+              // Timestamp already has timezone, parse directly
+              const time = new Date(dt);
+              finalTimestamp = !isNaN(time.getTime()) ? time.toISOString() + '+05:30' : null;
+            } else {
+              // Timestamp is in IST without timezone info, convert to UTC
+              const time = new Date(dt);
+              const utcTime = new Date(time.getTime() - istOffsetMs);
+              finalTimestamp = !isNaN(time.getTime()) ? utcTime.toISOString() + '+05:30' : null;
+            }
+            
+            return finalTimestamp ? {
+              id: i + 1, 
+              type: type.trim(), 
+              severity: severity.trim(), 
+              location: loc.trim(), 
+              description: desc.trim(), 
+              time: finalTimestamp
             } : null;
           }).filter(Boolean);
 
