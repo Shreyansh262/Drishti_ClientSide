@@ -31,7 +31,7 @@ export default function HistoryPage() {
         // Convert string time to Date object and sort in descending order (most recent first)
         const parsedIncidents = data.incidents.map((incident) => ({
           ...incident,
-          time: new Date(incident.time), // incident.time is already a Date object from the backend
+          time: new Date(incident.time),
         })).sort((a, b) => b.time.getTime() - a.time.getTime()) // Sort in descending order
 
 
@@ -60,18 +60,11 @@ export default function HistoryPage() {
   }
 
   const handleRaiseTicket = (incident) => {
-    // Ensuring the time is correctly formatted for the ticket creation, still as IST
-    const dateOptions = { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Kolkata' };
-    const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' };
-
-    const istDate = new Date(incident.time).toLocaleDateString('en-CA', dateOptions); // YYYY-MM-DD
-    const istTime = new Date(incident.time).toLocaleTimeString('en-GB', timeOptions); // HH:MM
-
     const queryParams = new URLSearchParams({
       issueType: incident.type.toLowerCase().replace(/\s+/g, "-"),
       title: `${incident.type} Incident`,
-      date: istDate,
-      time: istTime,
+      date: new Date(incident.time).toISOString().split("T")[0], //YYYY-mm-dd
+      time: new Date(incident.time).toTimeString().split(" ")[0].slice(0, 5), // HH:MM
     })
 
     router.push(`/dashboard/tickets/new?${queryParams.toString()}`)
@@ -153,16 +146,7 @@ export default function HistoryPage() {
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <Clock className="h-4 w-4" />
-                      {/* Corrected: Force display as IST */}
-                      {new Date(incident.time).toLocaleString('en-IN', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: true, // Use 12-hour format with AM/PM
-                        timeZone: 'Asia/Kolkata' // Explicitly set timezone to IST
-                      })}
+                      {new Date(incident.time).toLocaleString()}
                     </div>
                   </div>
 
