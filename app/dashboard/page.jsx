@@ -79,21 +79,6 @@ export default function DashboardPage() {
     return highest.toLowerCase()
   }
 
-  const formatTimeAgo = (timestamp) => {
-    if (!timestamp || isNaN(new Date(timestamp.replace('+05:30', '')).getTime())) return "Never"
-    const now = new Date()
-    const time = new Date(timestamp.replace('+05:30', ''))
-    if (isNaN(time.getTime())) return "Invalid"
-    const diffMs = now.getTime() - time.getTime() // Client time vs. IST
-    const diffMins = Math.floor(diffMs / 60000)
-    if (diffMins < 1) return "Just now"
-    if (diffMins < 60) return `${diffMins}m ago`
-    const diffHours = Math.floor(diffMins / 60)
-    if (diffHours < 24) return `${diffHours}h ago`
-    const diffDays = Math.floor(diffHours / 24)
-    return `${diffDays}d ago`
-  }
-
   const handleLogout = () => {
     localStorage.removeItem('userToken')
     sessionStorage.clear()
@@ -220,9 +205,8 @@ export default function DashboardPage() {
             { name: "Alcohol Sensor", key: "alcoholTimestamp" }
           ].map((sensor) => {
             const lastTime = data[sensor.key] ? new Date(data[sensor.key].replace('+05:30', '')) : null;
-            const ageMs = lastTime && !isNaN(lastTime.getTime()) ? new Date().getTime() - lastTime.getTime() : Infinity;
-            const isOnline = sensor.key === 'obdTimestamp' ? data.isConnected && ageMs < 90_000 : lastTime && !isNaN(lastTime.getTime()) && ageMs < 90_000;
-            console.log(`Sensor: ${sensor.name}, isOnline: ${isOnline}, Age: ${ageMs / 1000}s, Timestamp: ${lastTime?.toISOString() || 'Invalid'}`);
+            const isOnline = lastTime && !isNaN(lastTime.getTime()); // Simplified to check valid timestamp
+            console.log(`Sensor: ${sensor.name}, isOnline: ${isOnline}, Timestamp: ${lastTime?.toISOString() || 'Invalid'}`);
             return (
               <div
                 key={sensor.key}
@@ -236,7 +220,7 @@ export default function DashboardPage() {
                   {isOnline ? "Online" : "Offline"}
                 </Badge>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Last update: {lastTime ? formatTimeAgo(data[sensor.key]) : "N/A"}
+                  Last update: {data[sensor.key] || "N/A"}
                 </p>
               </div>
             )
@@ -320,7 +304,7 @@ export default function DashboardPage() {
                         <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">{incident.description}</p>
                         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                           <Clock className="h-3 w-3" />
-                          <span>{formatTimeAgo(incident.time)}</span>
+                          <span>{incident.time || "N/A"}</span>
                           {incident.continuous && (
                             <Badge variant="outline" className="text-xs dark:text-gray-300 dark:border-gray-600">
                               <Zap className="h-3 w-3 mr-1" />
