@@ -80,10 +80,11 @@ export default function DashboardPage() {
   }
 
   const formatTimeAgo = (timestamp) => {
-    if (!timestamp || isNaN(new Date(timestamp).getTime())) return "Never"
+    if (!timestamp || isNaN(new Date(timestamp.replace('+05:30', '')).getTime())) return "Never"
     const now = new Date()
-    const time = new Date(timestamp)
-    const diffMs = now.getTime() - time.getTime() // UTC-based
+    const time = new Date(timestamp.replace('+05:30', ''))
+    if (isNaN(time.getTime())) return "Invalid"
+    const diffMs = now.getTime() - time.getTime() // Client time vs. IST
     const diffMins = Math.floor(diffMs / 60000)
     if (diffMins < 1) return "Just now"
     if (diffMins < 60) return `${diffMins}m ago`
@@ -109,7 +110,7 @@ export default function DashboardPage() {
       if (body.success) {
         const now = new Date().toISOString()
         const incidentsForDisplay = body.activeIncidents || []
-        const obdTime = body.obdTimestamp ? new Date(body.obdTimestamp) : null
+        const obdTime = body.obdTimestamp ? new Date(body.obdTimestamp.replace('+05:30', '')) : null
         const ageMs = obdTime && !isNaN(obdTime.getTime()) ? new Date(now).getTime() - obdTime.getTime() : Infinity
         console.log(`OBD - Client Age: ${ageMs / 1000}s, IsConnected: ${body.isConnected}`)
 
@@ -127,8 +128,8 @@ export default function DashboardPage() {
           lastUpdate: now,
           driverScore: body.driverScore || 100,
           recentIncidents: body.recentIncidents || 0,
-          dataAge: body.lastUpdate ? Math.floor((new Date(now).getTime() - new Date(body.lastUpdate).getTime()) / 1000) : 45,
-          activeIncidents: incidentsForDisplay.sort((a, b) => new Date(b.time || now).getTime() - new Date(a.time || now).getTime()),
+          dataAge: body.lastUpdate ? Math.floor((new Date(now).getTime() - new Date(body.lastUpdate.replace('+05:30', '')).getTime()) / 1000) : 45,
+          activeIncidents: incidentsForDisplay.sort((a, b) => new Date(b.time.replace('+05:30', '') || now).getTime() - new Date(a.time.replace('+05:30', '') || now).getTime()),
         })
       } else {
         console.error('API Failure:', body.error)
@@ -175,7 +176,7 @@ export default function DashboardPage() {
   const dataStatus = getDataAgeStatus(data.dataAge)
 
   const sortedIncidents = [...(data.activeIncidents || [])].sort(
-    (a, b) => new Date(b.time || data.lastUpdate).getTime() - new Date(a.time || data.lastUpdate).getTime()
+    (a, b) => new Date(b.time.replace('+05:30', '') || data.lastUpdate).getTime() - new Date(a.time.replace('+05:30', '') || data.lastUpdate).getTime()
   )
 
   const highestSeverity = getHighestSeverity(sortedIncidents)
@@ -218,9 +219,9 @@ export default function DashboardPage() {
             { name: "Dash Cam", key: "frontcamTimestamp" },
             { name: "Alcohol Sensor", key: "alcoholTimestamp" }
           ].map((sensor) => {
-            const lastTime = data[sensor.key] ? new Date(data[sensor.key]) : null;
+            const lastTime = data[sensor.key] ? new Date(data[sensor.key].replace('+05:30', '')) : null;
             const ageMs = lastTime && !isNaN(lastTime.getTime()) ? new Date().getTime() - lastTime.getTime() : Infinity;
-            const isOnline = sensor.key === 'obdTimestamp' ? data.isConnected && ageMs < 90_000 : lastTime && ageMs < 90_000;
+            const isOnline = sensor.key === 'obdTimestamp' ? data.isConnected && ageMs < 90_000 : lastTime && !isNaN(lastTime.getTime()) && ageMs < 90_000;
             console.log(`Sensor: ${sensor.name}, isOnline: ${isOnline}, Age: ${ageMs / 1000}s, Timestamp: ${lastTime?.toISOString() || 'Invalid'}`);
             return (
               <div
@@ -235,7 +236,7 @@ export default function DashboardPage() {
                   {isOnline ? "Online" : "Offline"}
                 </Badge>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Last update: {lastTime ? formatTimeAgo(lastTime) : "N/A"}
+                  Last update: {lastTime ? formatTimeAgo(data[sensor.key]) : "N/A"}
                 </p>
               </div>
             )
