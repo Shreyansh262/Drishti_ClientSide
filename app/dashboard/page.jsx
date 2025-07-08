@@ -151,7 +151,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchLiveData()
-    const interval = setInterval(fetchLiveData, 4000)
+    const interval = setInterval(fetchLiveData, 8000)
     return () => clearInterval(interval)
   }, [])
 
