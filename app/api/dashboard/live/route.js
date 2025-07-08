@@ -16,13 +16,15 @@ export async function GET() {
       coordinates: { lat: 48.8584, lng: 2.2945 },
       obdTimestamp: null,
       isConnected: false,
-      lastUpdate: new Date(),
+      lastUpdate: new Date().toISOString(),
       recentIncidents: 0,
       activeIncidents: [],
       totalIncidents: 0,
       monthlyIncidents: 0,
       weeklySafetyScore: 0,
     };
+
+    console.log('Server Time:', new Date().toISOString(), 'Offset:', new Date().getTimezoneOffset());
 
     const [alcoholResult, visibilityResult, drowsinessResult, obdResult, historyResult] = await Promise.allSettled([
       // Alcohol
@@ -36,7 +38,7 @@ export async function GET() {
           const match = sensorLine?.match(/Sensor Value:\s*(\d+)/);
           return {
             level: match ? parseInt(match[1], 10) : 0,
-            timestamp,
+            timestamp: new Date(timestamp).toISOString(), // Explicit UTC
           };
         }
         return { level: 0, timestamp: null };
@@ -51,7 +53,7 @@ export async function GET() {
         if (latest && latest.length >= 4) {
           return {
             score: Math.round(parseFloat(latest[3] || "0")),
-            timestamp: `${latest[0]} ${latest[1]}`,
+            timestamp: new Date(`${latest[0]} ${latest[1]}`).toISOString(), // Explicit UTC
           };
         }
         return { score: 0, timestamp: null };
@@ -72,7 +74,7 @@ export async function GET() {
           else if (alert.includes("no driver")) state = "No Face Detected";
           return {
             state,
-            timestamp: latest?.[1] || null,
+            timestamp: latest?.[1] ? new Date(latest[1]).toISOString() : null, // Explicit UTC
           };
         }
         return { state: "Unknown", timestamp: null };
@@ -97,14 +99,14 @@ export async function GET() {
           const lng = safeParseFloat(parts[2]);
           const speed = safeParseFloat(parts[29]);
 
-          const timestamp = new Date(rawTime);
-          const isRecent = Date.now() - timestamp.getTime() <= 60000;
+          const timestamp = new Date(rawTime).toISOString(); // Explicit UTC
+          const isRecent = new Date().getTime() - new Date(timestamp).getTime() <= 60000; // Explicit UTC comparison
           const isValid = lat !== null && lng !== null && speed !== null;
 
           return {
             speed: isValid ? Math.round(speed) : 0,
             coordinates: isValid ? { lat, lng } : { lat: 48.8584, lng: 2.2945 },
-            timestamp: timestamp.toISOString(),
+            timestamp,
             isConnected: isRecent && isValid,
           };
         }
@@ -114,25 +116,25 @@ export async function GET() {
       // History
       (async () => {
         const path = "/home/fast-and-furious/main/master_log.csv";
-        const content = await getFileContent(path);
+        const content = await getTailContent(path, 100); // Fetch only recent lines
         const lines = content.trim().split("\n");
         const [header, ...rows] = lines;
         const all = rows.map((line, i) => {
           const [dt, type, severity, loc, desc] = line.split(",");
-          const time = new Date(dt);
-          return !isNaN(time.getTime()) ? {
+          const time = new Date(dt).toISOString(); // Explicit UTC
+          return !isNaN(new Date(dt).getTime()) ? {
             id: i + 1, type: type.trim(), severity: severity.trim(), location: loc.trim(), description: desc.trim(), time
           } : null;
         }).filter(Boolean);
 
-        const now = new Date();
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
-        const thisMonth = now.getMonth();
+        const now = new Date().toISOString();
+        const todayStart = new Date(new Date().setUTCHours(0, 0, 0, 0)).toISOString();
+        const sixHoursAgo = new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString();
+        const thisMonth = new Date().getUTCMonth();
 
         const today = all.filter(x => x.time >= todayStart && x.time <= now);
         const recent = today.filter(x => x.time >= sixHoursAgo);
-        const monthly = all.filter(x => x.time.getMonth() === thisMonth);
+        const monthly = all.filter(x => new Date(x.time).getUTCMonth() === thisMonth);
 
         let penalty = 0;
         today.forEach(inc => {
@@ -142,14 +144,14 @@ export async function GET() {
 
         let score = 100;
         if (recent.length === 0) {
-          const hrs = Math.floor((now - todayStart) / (60 * 60 * 1000));
+          const hrs = Math.floor((new Date(now) - new Date(todayStart)) / (60 * 60 * 1000));
           score += Math.min(hrs, 20) / 2;
         }
 
         const driverScore = Math.max(0, Math.min(100, score - penalty));
 
         let weeklyPenalty = 0;
-        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const oneWeekAgo = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
         const week = all.filter(x => x.time >= oneWeekAgo);
         week.forEach(inc => {
           if (inc.severity.toLowerCase() === "high") weeklyPenalty += 0.2;
@@ -163,7 +165,7 @@ export async function GET() {
           weeklySafetyScore: weeklyScore,
           driverScore,
           recentIncidents: recent.length,
-          activeIncidents: today.sort((a, b) => b.time - a.time),
+          activeIncidents: today.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()),
         };
       })()
     ]);
@@ -186,18 +188,25 @@ export async function GET() {
       dashboardData.obdTimestamp = obdResult.value.timestamp;
       dashboardData.isConnected = obdResult.value.isConnected;
     }
-    if (historyResult.status === 'fulfilled') {
-      dashboardData.totalIncidents = historyResult.value.totalIncidents;
-      dashboardData.monthlyIncidents = historyResult.value.monthlyIncidents;
-      dashboardData.weeklySafetyScore = historyResult.value.weeklySafetyScore;
-      dashboardData.driverScore = historyResult.value.driverScore;
-      dashboardData.recentIncidents = historyResult.value.recentIncidents;
-      dashboardData.activeIncidents = historyResult.value.activeIncidents;
+    if (historyResult.status === 'rejected') {
+      console.error('History fetch failed:', historyResult.reason);
+      dashboardData.recentIncidents = 0;
+      dashboardData.activeIncidents = [];
+      dashboardData.driverScore = 100;
+    } else {
+      const history = historyResult.value;
+      dashboardData.totalIncidents = history.totalIncidents;
+      dashboardData.monthlyIncidents = history.monthlyIncidents;
+      dashboardData.weeklySafetyScore = history.weeklySafetyScore;
+      dashboardData.driverScore = history.driverScore;
+      dashboardData.recentIncidents = history.recentIncidents;
+      dashboardData.activeIncidents = history.activeIncidents;
     }
 
-    dashboardData.lastUpdate = new Date();
+    dashboardData.lastUpdate = new Date().toISOString();
     return NextResponse.json({ success: true, ...dashboardData });
   } catch (err) {
+    console.error('API Error:', err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }

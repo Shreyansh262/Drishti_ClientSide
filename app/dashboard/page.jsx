@@ -33,11 +33,13 @@ export default function DashboardPage() {
     speed: 0,
     drowsinessState: "Awake",
     isConnected: false,
-    lastUpdate: new Date(),
+    lastUpdate: new Date().toISOString(),
     dataAge: 45, // seconds
     recentIncidents: 0,
     activeIncidents: [],
   })
+
+  console.log('Client Time:', new Date().toISOString(), 'Offset:', new Date().getTimezoneOffset());
 
   const getSeverityColor = (severity) => {
     switch (severity?.toLowerCase()) {
@@ -81,9 +83,9 @@ export default function DashboardPage() {
 
   const formatTimeAgo = (timestamp) => {
     if (!timestamp) return "Never"
-    const now = new Date()
-    const time = new Date(timestamp)
-    const diffMs = now - time
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffMs = now.getTime() - time.getTime(); // Explicit UTC comparison
     const diffMins = Math.floor(diffMs / 60000)
 
     if (diffMins < 1) return "Just now"
@@ -107,7 +109,7 @@ export default function DashboardPage() {
       const body = await res.json()
 
       if (body.success) {
-        const now = new Date()
+        const now = new Date().toISOString();
 
         const incidentsForDisplay = body.activeIncidents || []
 
@@ -121,11 +123,11 @@ export default function DashboardPage() {
           speed: body.speed,
           obdTimestamp: body.obdTimestamp,
           coordinates: body.coordinates,
-          isConnected: true,
+          isConnected: body.isConnected,
           lastUpdate: now,
           driverScore: body.driverScore,
           recentIncidents: body.recentIncidents,
-          dataAge: Math.floor((now.getTime() - new Date(body.lastUpdate).getTime()) / 1000),
+          dataAge: Math.floor((new Date(now).getTime() - new Date(body.lastUpdate).getTime()) / 1000),
           activeIncidents: incidentsForDisplay.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()),
         })
       }
@@ -174,7 +176,6 @@ export default function DashboardPage() {
     (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()
   )
 
-
   const highestSeverity = getHighestSeverity(sortedIncidents)
 
   return (
@@ -216,8 +217,10 @@ export default function DashboardPage() {
             { name: "Dash Cam", key: "frontcamTimestamp" },
             { name: "Alcohol Sensor", key: "alcoholTimestamp" }
           ].map((sensor) => {
-            const lastTime = data[sensor.key] ? new Date(data[sensor.key]) : null
-            const isOnline = lastTime && (Date.now() - lastTime.getTime()) < 90_000
+            const lastTime = data[sensor.key] ? new Date(data[sensor.key]) : null;
+            const ageMs = lastTime ? new Date().getTime() - new Date(lastTime).getTime() : Infinity; // Explicit UTC
+            const isOnline = sensor.key === 'obdTimestamp' ? data.isConnected && ageMs < 90_000 : lastTime && ageMs < 90_000;
+            console.log(`Sensor: ${sensor.name}, isOnline: ${isOnline}, Age: ${ageMs}ms, Timestamp: ${lastTime?.toISOString()}`);
             return (
               <div
                 key={sensor.key}
@@ -234,7 +237,6 @@ export default function DashboardPage() {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Last update: {lastTime ? formatTimeAgo(lastTime) : "N/A"}
                 </p>
-
               </div>
             )
           })}
@@ -263,13 +265,11 @@ export default function DashboardPage() {
                   {data.driverScore > 80 ? "🏆 Excellent" : data.driverScore > 60 ? "⚠️ Good" : "🚨 Needs Attention"}
                 </Badge>
               </div>
-              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Enhanced Live Incidents Card (now includes recent historical) */}
+        {/* Enhanced Live Incidents Card */}
         <Card className={`border ${highestSeverity === "high" ? "bg-red-50 border-red-500 dark:bg-red-900 dark:border-red-700" :
           highestSeverity === "medium" ? "bg-yellow-50 border-yellow-500 dark:bg-yellow-900 dark:border-yellow-700" :
             highestSeverity === "low" ? "bg-blue-50 border-blue-500 dark:bg-blue-900 dark:border-blue-700" :
@@ -399,7 +399,6 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Location Map */}
       {data.coordinates && (
         <Card className="bg-card text-card-foreground">
           <CardHeader>
