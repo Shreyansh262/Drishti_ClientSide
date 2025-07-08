@@ -36,11 +36,61 @@ The alcohol sensor (and other sensors) were showing as "offline" even when they 
 - **Before**: `const ageMs = getIstNow().getTime() - date.getTime();` (mixing IST and UTC)
 - **After**: `const ageMs = new Date().getTime() - utcDate.getTime();` (both UTC)
 
-### 3. Fixed Functions:
-- `isSensorOnline()`: Now properly compares UTC times
-- `formatTimestamp()`: Correctly converts UTC to IST for display
-- OBD age calculation: Fixed to use UTC comparison
-- Data age calculation: Fixed to use UTC comparison
+## Updated Fix for Vercel Deployment Issue:
+
+### Problem on Vercel:
+Even after fixing the timezone logic, timestamps were still showing 5.5 hours behind on Vercel while working correctly on localhost.
+
+### Root Cause:
+The issue was with JavaScript's `toLocaleString()` and `toTimeString()` methods behaving differently in Vercel's serverless environment compared to localhost.
+
+### Solution:
+Replace all manual timezone calculations and generic locale functions with explicit timezone specifications using `timeZone: 'Asia/Kolkata'`.
+
+### Changes Made:
+
+#### 1. Dashboard Page (`app/dashboard/page.jsx`):
+```javascript
+// Before (problematic on Vercel):
+const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+return istDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+// After (works consistently):
+return utcDate.toLocaleString('en-IN', {
+  timeZone: 'Asia/Kolkata',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: true
+});
+```
+
+#### 2. History Page (`app/dashboard/history/page.jsx`):
+```javascript
+// Before (problematic on Vercel):
+{new Date(incident.time).toLocaleString()}
+
+// After (works consistently):
+{new Date(incident.time).toLocaleString('en-IN', {
+  timeZone: 'Asia/Kolkata',
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: true
+})}
+```
+
+### Why This Works:
+- **Explicit Timezone**: Using `timeZone: 'Asia/Kolkata'` ensures consistent behavior across environments
+- **No Manual Calculations**: Avoids errors from manual offset calculations
+- **Environment Independent**: Works the same on localhost and Vercel
+
+### Testing:
+- ✅ Sensor timestamps now show correct IST time on both localhost and Vercel
+- ✅ History page incidents show correct timestamps
+- ✅ Live safety alerts show correct timestamps
+- ✅ All online/offline logic still works correctly
 
 ## How It Works Now:
 1. **CSV timestamps** are in IST (local device time)

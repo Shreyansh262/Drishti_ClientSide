@@ -60,11 +60,17 @@ export default function HistoryPage() {
   }
 
   const handleRaiseTicket = (incident) => {
+    const incidentDate = new Date(incident.time);
     const queryParams = new URLSearchParams({
       issueType: incident.type.toLowerCase().replace(/\s+/g, "-"),
       title: `${incident.type} Incident`,
-      date: new Date(incident.time).toISOString().split("T")[0], //YYYY-mm-dd
-      time: new Date(incident.time).toTimeString().split(" ")[0].slice(0, 5), // HH:MM
+      date: incidentDate.toLocaleDateString('en-CA'), // YYYY-MM-DD format
+      time: incidentDate.toLocaleTimeString('en-IN', { 
+        timeZone: 'Asia/Kolkata',
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit'
+      }), // HH:MM format in IST
     })
 
     router.push(`/dashboard/tickets/new?${queryParams.toString()}`)
@@ -146,7 +152,15 @@ export default function HistoryPage() {
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <Clock className="h-4 w-4" />
-                      {new Date(incident.time).toLocaleString()}
+                      {new Date(incident.time).toLocaleString('en-IN', {
+                        timeZone: 'Asia/Kolkata',
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                      })}
                     </div>
                   </div>
 

@@ -176,13 +176,18 @@ export default function DashboardPage() {
   // Format timestamp to "01:23 PM" format for all sensors
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return "N/A";
-    // Remove the +05:30 suffix to get the UTC time
+    
+    // Parse the timestamp - it should already be in UTC with +05:30 suffix
     const utcDate = new Date(timestamp.replace('+05:30', ''));
     if (isNaN(utcDate.getTime())) return "Invalid";
     
-    // Convert UTC to IST for display
-    const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
-    return istDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }); // e.g., "01:23 PM"
+    // Use toLocaleString with explicit timezone instead of manual calculation
+    return utcDate.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
   // Check if sensor is online based on age (90,000 ms = 1.5 minutes threshold)
