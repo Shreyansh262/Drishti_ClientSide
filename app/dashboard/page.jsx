@@ -70,24 +70,21 @@ export default function DashboardPage() {
 
   const getHighestSeverity = (incidents) => {
     if (!incidents || incidents.length === 0) return "safe"
-
     const severityOrder = { high: 3, medium: 2, low: 1 }
     const highest = incidents.reduce((max, incident) => {
       const currentLevel = severityOrder[incident.severity?.toLowerCase()] || 0
       const maxLevel = severityOrder[max?.toLowerCase()] || 0
       return currentLevel > maxLevel ? incident.severity : max
     }, "safe")
-
     return highest.toLowerCase()
   }
 
   const formatTimeAgo = (timestamp) => {
-    if (!timestamp) return "Never"
-    const now = new Date();
-    const time = new Date(timestamp);
-    const diffMs = now.getTime() - time.getTime(); // Explicit UTC comparison
+    if (!timestamp || isNaN(new Date(timestamp).getTime())) return "Never"
+    const now = new Date()
+    const time = new Date(timestamp)
+    const diffMs = now.getTime() - time.getTime()
     const diffMins = Math.floor(diffMs / 60000)
-
     if (diffMins < 1) return "Just now"
     if (diffMins < 60) return `${diffMins}m ago`
     const diffHours = Math.floor(diffMins / 60)
@@ -107,29 +104,30 @@ export default function DashboardPage() {
     try {
       const res = await fetch("/api/dashboard/live")
       const body = await res.json()
+      console.log('API Response:', body)
 
       if (body.success) {
-        const now = new Date().toISOString();
-
+        const now = new Date().toISOString()
         const incidentsForDisplay = body.activeIncidents || []
-
         setData({
-          alcoholLevel: parseFloat(body.alcoholLevel),
+          alcoholLevel: parseFloat(body.alcoholLevel) || 0.0,
           alcoholTimestamp: body.alcoholTimestamp,
-          visibilityScore: body.visibilityScore,
+          visibilityScore: body.visibilityScore || 0,
           frontcamTimestamp: body.frontcamTimestamp,
-          drowsinessState: body.drowsinessState,
+          drowsinessState: body.drowsinessState || "Awake",
           dashcamTimestamp: body.dashcamTimestamp,
-          speed: body.speed,
+          speed: body.speed || 0,
           obdTimestamp: body.obdTimestamp,
-          coordinates: body.coordinates,
-          isConnected: body.isConnected,
+          coordinates: body.coordinates || { lat: 48.8584, lng: 2.2945 },
+          isConnected: body.isConnected || false,
           lastUpdate: now,
-          driverScore: body.driverScore,
-          recentIncidents: body.recentIncidents,
-          dataAge: Math.floor((new Date(now).getTime() - new Date(body.lastUpdate).getTime()) / 1000),
-          activeIncidents: incidentsForDisplay.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()),
+          driverScore: body.driverScore || 100,
+          recentIncidents: body.recentIncidents || 0,
+          dataAge: body.lastUpdate ? Math.floor((new Date(now).getTime() - new Date(body.lastUpdate).getTime()) / 1000) : 45,
+          activeIncidents: incidentsForDisplay.sort((a, b) => new Date(b.time || now).getTime() - new Date(a.time || now).getTime()),
         })
+      } else {
+        console.error('API Failure:', body.error)
       }
     } catch (error) {
       console.error("Failed to fetch live data:", error)
@@ -143,7 +141,7 @@ export default function DashboardPage() {
     setIsSyncing(true)
     try {
       await fetch("/api/sync", { method: "POST" })
-      setTimeout(fetchLiveData, 1000);
+      setTimeout(fetchLiveData, 1000)
     } catch (error) {
       console.error("Sync failed:", error)
     } finally {
@@ -173,7 +171,7 @@ export default function DashboardPage() {
   const dataStatus = getDataAgeStatus(data.dataAge)
 
   const sortedIncidents = [...(data.activeIncidents || [])].sort(
-    (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()
+    (a, b) => new Date(b.time || data.lastUpdate).getTime() - new Date(a.time || data.lastUpdate).getTime()
   )
 
   const highestSeverity = getHighestSeverity(sortedIncidents)
@@ -189,7 +187,6 @@ export default function DashboardPage() {
             <p className="text-sm text-muted-foreground">Vehicle Monitering System</p>
           </div>
         </div>
-
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <User className="h-4 w-4" />
@@ -218,14 +215,13 @@ export default function DashboardPage() {
             { name: "Alcohol Sensor", key: "alcoholTimestamp" }
           ].map((sensor) => {
             const lastTime = data[sensor.key] ? new Date(data[sensor.key]) : null;
-            const ageMs = lastTime ? new Date().getTime() - new Date(lastTime).getTime() : Infinity; // Explicit UTC
+            const ageMs = lastTime && !isNaN(lastTime.getTime()) ? new Date().getTime() - lastTime.getTime() : Infinity;
             const isOnline = sensor.key === 'obdTimestamp' ? data.isConnected && ageMs < 90_000 : lastTime && ageMs < 90_000;
-            console.log(`Sensor: ${sensor.name}, isOnline: ${isOnline}, Age: ${ageMs}ms, Timestamp: ${lastTime?.toISOString()}`);
+            console.log(`Sensor: ${sensor.name}, isOnline: ${isOnline}, Age: ${ageMs / 1000}s, Timestamp: ${lastTime?.toISOString() || 'Invalid'}`);
             return (
               <div
                 key={sensor.key}
-                className={`p-4 rounded-md border ${isOnline ? "bg-green-50 border-green-300 dark:bg-green-800 dark:border-green-600" : "bg-red-50 border-red-300 dark:bg-red-800 dark:border-red-600"
-                  }`}
+                className={`p-4 rounded-md border ${isOnline ? "bg-green-50 border-green-300 dark:bg-green-800 dark:border-green-600" : "bg-red-50 border-red-300 dark:bg-red-800 dark:border-red-600"}`}
               >
                 <h4 className="font-medium text-gray-700 dark:text-gray-200 mb-1">{sensor.name}</h4>
                 <Badge
@@ -333,7 +329,6 @@ export default function DashboardPage() {
                 ))
               )}
             </div>
-
             {sortedIncidents.length > 0 && (
               <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
                 <p className="text-xs text-gray-500 text-center dark:text-gray-400">

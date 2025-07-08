@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTailContent, getFileContent } from "@/lib/sshClient";
+import { getTailContent } from "@/lib/sshClient";
 import { parse } from "csv-parse/sync";
 
 export async function GET() {
@@ -21,7 +21,7 @@ export async function GET() {
       activeIncidents: [],
       totalIncidents: 0,
       monthlyIncidents: 0,
-      weeklySafetyScore: 0,
+      weeklySafetyScore: "0.00",
     };
 
     console.log('Server Time:', new Date().toISOString(), 'Offset:', new Date().getTimezoneOffset());
@@ -35,10 +35,10 @@ export async function GET() {
         const latest = lines.at(-1);
         if (latest) {
           const [timestamp, sensorLine] = latest.split(",");
-          const match = sensorLine?.match(/Sensor Value:\s*(\d+)/);
+          const ts = new Date(timestamp);
           return {
-            level: match ? parseInt(match[1], 10) : 0,
-            timestamp: new Date(timestamp).toISOString(), // Explicit UTC
+            level: sensorLine?.match(/Sensor Value:\s*(\d+)/) ? parseInt(RegExp.$1, 10) : 0,
+            timestamp: !isNaN(ts.getTime()) ? ts.toISOString() : null,
           };
         }
         return { level: 0, timestamp: null };
@@ -51,9 +51,10 @@ export async function GET() {
         const records = parse(content, { skip_empty_lines: true });
         const latest = records.at(-1);
         if (latest && latest.length >= 4) {
+          const ts = new Date(`${latest[0]} ${latest[1]}`);
           return {
             score: Math.round(parseFloat(latest[3] || "0")),
-            timestamp: new Date(`${latest[0]} ${latest[1]}`).toISOString(), // Explicit UTC
+            timestamp: !isNaN(ts.getTime()) ? ts.toISOString() : null,
           };
         }
         return { score: 0, timestamp: null };
@@ -72,9 +73,10 @@ export async function GET() {
           else if (alert.includes("drowsiness")) state = "Drowsy";
           else if (alert.includes("sleepiness")) state = "Sleepy";
           else if (alert.includes("no driver")) state = "No Face Detected";
+          const ts = new Date(latest?.[1] || "");
           return {
             state,
-            timestamp: latest?.[1] ? new Date(latest[1]).toISOString() : null, // Explicit UTC
+            timestamp: !isNaN(ts.getTime()) ? ts.toISOString() : null,
           };
         }
         return { state: "Unknown", timestamp: null };
@@ -98,11 +100,13 @@ export async function GET() {
           const lat = safeParseFloat(parts[3]);
           const lng = safeParseFloat(parts[2]);
           const speed = safeParseFloat(parts[29]);
+          const ts = new Date(rawTime);
 
-          const timestamp = new Date(rawTime).toISOString(); // Explicit UTC
-          const isRecent = new Date().getTime() - new Date(timestamp).getTime() <= 60000; // Explicit UTC comparison
+          const timestamp = !isNaN(ts.getTime()) ? ts.toISOString() : null;
+          const isRecent = timestamp ? (new Date().getTime() - new Date(timestamp).getTime()) <= 60000 : false;
           const isValid = lat !== null && lng !== null && speed !== null;
 
+          console.log(`OBD - Timestamp: ${timestamp}, IsRecent: ${isRecent}, IsValid: ${isValid}, Age: ${timestamp ? (new Date().getTime() - new Date(timestamp).getTime()) / 1000 : 'N/A'}s`);
           return {
             speed: isValid ? Math.round(speed) : 0,
             coordinates: isValid ? { lat, lng } : { lat: 48.8584, lng: 2.2945 },
@@ -116,57 +120,70 @@ export async function GET() {
       // History
       (async () => {
         const path = "/home/fast-and-furious/main/master_log.csv";
-        const content = await getTailContent(path, 100); // Fetch only recent lines
-        const lines = content.trim().split("\n");
-        const [header, ...rows] = lines;
-        const all = rows.map((line, i) => {
-          const [dt, type, severity, loc, desc] = line.split(",");
-          const time = new Date(dt).toISOString(); // Explicit UTC
-          return !isNaN(new Date(dt).getTime()) ? {
-            id: i + 1, type: type.trim(), severity: severity.trim(), location: loc.trim(), description: desc.trim(), time
-          } : null;
-        }).filter(Boolean);
+        try {
+          const content = await getTailContent(path, 100);
+          const lines = content.trim().split("\n");
+          const [header, ...rows] = lines;
+          const all = rows.map((line, i) => {
+            const [dt, type, severity, loc, desc] = line.split(",");
+            const time = new Date(dt);
+            return !isNaN(time.getTime()) ? {
+              id: i + 1, type: type.trim(), severity: severity.trim(), location: loc.trim(), description: desc.trim(), time: time.toISOString()
+            } : null;
+          }).filter(Boolean);
 
-        const now = new Date().toISOString();
-        const todayStart = new Date(new Date().setUTCHours(0, 0, 0, 0)).toISOString();
-        const sixHoursAgo = new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString();
-        const thisMonth = new Date().getUTCMonth();
+          const now = new Date().toISOString();
+          const todayStart = new Date(new Date().setUTCHours(0, 0, 0, 0)).toISOString();
+          const sixHoursAgo = new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString();
+          const thisMonth = new Date().getUTCMonth();
 
-        const today = all.filter(x => x.time >= todayStart && x.time <= now);
-        const recent = today.filter(x => x.time >= sixHoursAgo);
-        const monthly = all.filter(x => new Date(x.time).getUTCMonth() === thisMonth);
+          const today = all.filter(x => x.time >= todayStart && x.time <= now);
+          const recent = today.filter(x => x.time >= sixHoursAgo);
+          const monthly = all.filter(x => new Date(x.time).getUTCMonth() === thisMonth);
 
-        let penalty = 0;
-        today.forEach(inc => {
-          if (inc.severity.toLowerCase() === "high") penalty += 0.2;
-          else if (inc.severity.toLowerCase() === "medium") penalty += 0.05;
-        });
+          let penalty = 0;
+          today.forEach(inc => {
+            if (inc.severity.toLowerCase() === "high") penalty += 0.2;
+            else if (inc.severity.toLowerCase() === "medium") penalty += 0.05;
+          });
 
-        let score = 100;
-        if (recent.length === 0) {
-          const hrs = Math.floor((new Date(now) - new Date(todayStart)) / (60 * 60 * 1000));
-          score += Math.min(hrs, 20) / 2;
+          let score = 100;
+          if (recent.length === 0) {
+            const hrs = Math.floor((new Date(now) - new Date(todayStart)) / (60 * 60 * 1000));
+            score += Math.min(hrs, 20) / 2;
+          }
+
+          const driverScore = Math.max(0, Math.min(100, score - penalty));
+
+          let weeklyPenalty = 0;
+          const oneWeekAgo = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+          const week = all.filter(x => x.time >= oneWeekAgo);
+          week.forEach(inc => {
+            if (inc.severity.toLowerCase() === "high") weeklyPenalty += 0.2;
+            else if (inc.severity.toLowerCase() === "medium") weeklyPenalty += 0.05;
+          });
+          const weeklyScore = Math.max(0, 100 - (weeklyPenalty / 7)).toFixed(2);
+
+          console.log(`History - Recent Incidents: ${recent.length}, Driver Score: ${driverScore}, Active Incidents: ${today.length}`);
+          return {
+            totalIncidents: all.length,
+            monthlyIncidents: monthly.length,
+            weeklySafetyScore: weeklyScore,
+            driverScore,
+            recentIncidents: recent.length,
+            activeIncidents: today,
+          };
+        } catch (err) {
+          console.error('History fetch error:', err);
+          return {
+            totalIncidents: 0,
+            monthlyIncidents: 0,
+            weeklySafetyScore: "0.00",
+            driverScore: 100,
+            recentIncidents: 0,
+            activeIncidents: [],
+          };
         }
-
-        const driverScore = Math.max(0, Math.min(100, score - penalty));
-
-        let weeklyPenalty = 0;
-        const oneWeekAgo = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-        const week = all.filter(x => x.time >= oneWeekAgo);
-        week.forEach(inc => {
-          if (inc.severity.toLowerCase() === "high") weeklyPenalty += 0.2;
-          else if (inc.severity.toLowerCase() === "medium") weeklyPenalty += 0.05;
-        });
-        const weeklyScore = Math.max(0, 100 - (weeklyPenalty / 7)).toFixed(2);
-
-        return {
-          totalIncidents: all.length,
-          monthlyIncidents: monthly.length,
-          weeklySafetyScore: weeklyScore,
-          driverScore,
-          recentIncidents: recent.length,
-          activeIncidents: today.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()),
-        };
       })()
     ]);
 
