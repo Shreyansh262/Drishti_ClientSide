@@ -16,7 +16,7 @@ export async function GET() {
       coordinates: { lat: 48.8584, lng: 2.2945 },
       obdTimestamp: null,
       isConnected: false,
-      lastUpdate: new Date().toISOString(),
+      lastUpdate: null,
       recentIncidents: 0,
       activeIncidents: [],
       totalIncidents: 0,
@@ -24,7 +24,11 @@ export async function GET() {
       weeklySafetyScore: "0.00",
     };
 
-    console.log('Server Time:', new Date().toISOString(), 'Offset:', new Date().getTimezoneOffset());
+    // Get current server time (UTC) and convert to IST (UTC+5:30)
+    const istOffsetMs = 5.5 * 60 * 60 * 1000;
+    const nowUtc = new Date();
+    const nowIst = new Date(nowUtc.getTime() + istOffsetMs);
+    console.log('Server Time (UTC):', nowUtc.toISOString(), 'Server Time (IST):', nowIst.toISOString(), 'Offset:', nowIst.getTimezoneOffset());
 
     const [alcoholResult, visibilityResult, drowsinessResult, obdResult, historyResult] = await Promise.allSettled([
       // Alcohol
@@ -35,10 +39,10 @@ export async function GET() {
         const latest = lines.at(-1);
         if (latest) {
           const [timestamp, sensorLine] = latest.split(",");
-          const ts = new Date(timestamp);
+          const ts = new Date(timestamp); // Already in IST
           return {
             level: sensorLine?.match(/Sensor Value:\s*(\d+)/) ? parseInt(RegExp.$1, 10) : 0,
-            timestamp: !isNaN(ts.getTime()) ? ts.toISOString() : null,
+            timestamp: !isNaN(ts.getTime()) ? ts.toISOString() + '+05:30' : null,
           };
         }
         return { level: 0, timestamp: null };
@@ -51,10 +55,10 @@ export async function GET() {
         const records = parse(content, { skip_empty_lines: true });
         const latest = records.at(-1);
         if (latest && latest.length >= 4) {
-          const ts = new Date(`${latest[0]} ${latest[1]}`);
+          const ts = new Date(`${latest[0]} ${latest[1]}`); // Already in IST
           return {
             score: Math.round(parseFloat(latest[3] || "0")),
-            timestamp: !isNaN(ts.getTime()) ? ts.toISOString() : null,
+            timestamp: !isNaN(ts.getTime()) ? ts.toISOString() + '+05:30' : null,
           };
         }
         return { score: 0, timestamp: null };
@@ -73,10 +77,10 @@ export async function GET() {
           else if (alert.includes("drowsiness")) state = "Drowsy";
           else if (alert.includes("sleepiness")) state = "Sleepy";
           else if (alert.includes("no driver")) state = "No Face Detected";
-          const ts = new Date(latest?.[1] || "");
+          const ts = new Date(latest?.[1] || ""); // Already in IST
           return {
             state,
-            timestamp: !isNaN(ts.getTime()) ? ts.toISOString() : null,
+            timestamp: !isNaN(ts.getTime()) ? ts.toISOString() + '+05:30' : null,
           };
         }
         return { state: "Unknown", timestamp: null };
@@ -86,7 +90,7 @@ export async function GET() {
       (async () => {
         const path = "/home/fast-and-furious/main/obd_data/trackLog.csv";
         const content = await getTailContent(path, 100);
-        console.log(`OBD File Content: ${content.substring(0, 100)}...`); // Log first 100 chars
+        console.log(`OBD File Content: ${content.substring(0, 100)}...`);
         const lines = content.split("\n").map(l => l.trim()).filter(l => l.includes(","));
         const latest = lines.at(-1);
         const parts = latest?.split(",") || [];
@@ -97,19 +101,18 @@ export async function GET() {
         };
 
         if (parts.length > 29) {
-          const rawTime = parts[1];
+          const rawTime = parts[1]; // e.g., "08-Jul-2025 13:22:59.311" in IST
           const lat = safeParseFloat(parts[3]);
           const lng = safeParseFloat(parts[2]);
           const speed = safeParseFloat(parts[29]);
-          const ts = new Date(rawTime);
-
-          const timestamp = !isNaN(ts.getTime()) ? ts.toISOString() : null;
-          const now = new Date().getTime();
-          const ageMs = timestamp ? Math.max(0, now - new Date(timestamp).getTime()) : Infinity; // Cap negative age at 0
+          const ts = new Date(rawTime); // Already in IST
+          const timestamp = !isNaN(ts.getTime()) ? ts.toISOString() + '+05:30' : null;
+          const nowIstMs = nowIst.getTime();
+          const ageMs = timestamp ? Math.max(0, nowIstMs - new Date(timestamp.replace('+05:30', '')).getTime()) : Infinity;
           const isRecent = ageMs <= 60000;
           const isValid = lat !== null && lng !== null && speed !== null;
 
-          console.log(`OBD - Timestamp: ${timestamp}, IsRecent: ${isRecent}, IsValid: ${isValid}, Age: ${ageMs / 1000}s`);
+          console.log(`OBD - Raw Time: ${rawTime}, IST Timestamp: ${timestamp}, IsRecent: ${isRecent}, IsValid: ${isValid}, Age: ${ageMs / 1000}s`);
           return {
             speed: isValid ? Math.round(speed) : 0,
             coordinates: isValid ? { lat, lng } : { lat: 48.8584, lng: 2.2945 },
@@ -125,25 +128,25 @@ export async function GET() {
         const path = "/home/fast-and-furious/main/master_log.csv";
         try {
           const content = await getTailContent(path, 100);
-          console.log(`History File Content: ${content.substring(0, 100)}...`); // Log first 100 chars
+          console.log(`History File Content: ${content.substring(0, 100)}...`);
           const lines = content.trim().split("\n");
           const [header, ...rows] = lines;
           const all = rows.map((line, i) => {
             const [dt, type, severity, loc, desc] = line.split(",");
-            const time = new Date(dt);
+            const time = new Date(dt); // Already in IST
             return !isNaN(time.getTime()) ? {
-              id: i + 1, type: type.trim(), severity: severity.trim(), location: loc.trim(), description: desc.trim(), time: time.toISOString()
+              id: i + 1, type: type.trim(), severity: severity.trim(), location: loc.trim(), description: desc.trim(), time: time.toISOString() + '+05:30'
             } : null;
           }).filter(Boolean);
 
-          const now = new Date().toISOString();
-          const todayStart = new Date(new Date().setUTCHours(0, 0, 0, 0)).toISOString();
-          const sixHoursAgo = new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString();
-          const thisMonth = new Date().getUTCMonth();
+          const nowIstIso = nowIst.toISOString() + '+05:30';
+          const todayStart = new Date(nowIst.setUTCHours(0, 0, 0, 0)).toISOString() + '+05:30';
+          const sixHoursAgo = new Date(nowIst.getTime() - 6 * 60 * 60 * 1000).toISOString() + '+05:30';
+          const thisMonth = nowIst.getUTCMonth();
 
-          const today = all.filter(x => x.time >= todayStart && x.time <= now);
+          const today = all.filter(x => x.time >= todayStart && x.time <= nowIstIso);
           const recent = today.filter(x => x.time >= sixHoursAgo);
-          const monthly = all.filter(x => new Date(x.time).getUTCMonth() === thisMonth);
+          const monthly = all.filter(x => new Date(x.time.replace('+05:30', '')).getUTCMonth() === thisMonth);
 
           let penalty = 0;
           today.forEach(inc => {
@@ -153,14 +156,14 @@ export async function GET() {
 
           let score = 100;
           if (recent.length === 0) {
-            const hrs = Math.floor((new Date(now) - new Date(todayStart)) / (60 * 60 * 1000));
+            const hrs = Math.floor((new Date(nowIstIso.replace('+05:30', '')) - new Date(todayStart.replace('+05:30', ''))) / (60 * 60 * 1000));
             score += Math.min(hrs, 20) / 2;
           }
 
           const driverScore = Math.max(0, Math.min(100, score - penalty));
 
           let weeklyPenalty = 0;
-          const oneWeekAgo = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+          const oneWeekAgo = new Date(nowIst.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString() + '+05:30';
           const week = all.filter(x => x.time >= oneWeekAgo);
           week.forEach(inc => {
             if (inc.severity.toLowerCase() === "high") weeklyPenalty += 0.2;
@@ -224,7 +227,7 @@ export async function GET() {
       dashboardData.activeIncidents = history.activeIncidents;
     }
 
-    dashboardData.lastUpdate = new Date().toISOString();
+    dashboardData.lastUpdate = nowIst.toISOString() + '+05:30';
     return NextResponse.json({ success: true, ...dashboardData });
   } catch (err) {
     console.error('API Error:', err);
