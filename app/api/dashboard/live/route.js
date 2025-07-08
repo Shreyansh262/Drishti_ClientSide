@@ -86,6 +86,7 @@ export async function GET() {
       (async () => {
         const path = "/home/fast-and-furious/main/obd_data/trackLog.csv";
         const content = await getTailContent(path, 100);
+        console.log(`OBD File Content: ${content.substring(0, 100)}...`); // Log first 100 chars
         const lines = content.split("\n").map(l => l.trim()).filter(l => l.includes(","));
         const latest = lines.at(-1);
         const parts = latest?.split(",") || [];
@@ -103,10 +104,12 @@ export async function GET() {
           const ts = new Date(rawTime);
 
           const timestamp = !isNaN(ts.getTime()) ? ts.toISOString() : null;
-          const isRecent = timestamp ? (new Date().getTime() - new Date(timestamp).getTime()) <= 60000 : false;
+          const now = new Date().getTime();
+          const ageMs = timestamp ? Math.max(0, now - new Date(timestamp).getTime()) : Infinity; // Cap negative age at 0
+          const isRecent = ageMs <= 60000;
           const isValid = lat !== null && lng !== null && speed !== null;
 
-          console.log(`OBD - Timestamp: ${timestamp}, IsRecent: ${isRecent}, IsValid: ${isValid}, Age: ${timestamp ? (new Date().getTime() - new Date(timestamp).getTime()) / 1000 : 'N/A'}s`);
+          console.log(`OBD - Timestamp: ${timestamp}, IsRecent: ${isRecent}, IsValid: ${isValid}, Age: ${ageMs / 1000}s`);
           return {
             speed: isValid ? Math.round(speed) : 0,
             coordinates: isValid ? { lat, lng } : { lat: 48.8584, lng: 2.2945 },
@@ -122,6 +125,7 @@ export async function GET() {
         const path = "/home/fast-and-furious/main/master_log.csv";
         try {
           const content = await getTailContent(path, 100);
+          console.log(`History File Content: ${content.substring(0, 100)}...`); // Log first 100 chars
           const lines = content.trim().split("\n");
           const [header, ...rows] = lines;
           const all = rows.map((line, i) => {
