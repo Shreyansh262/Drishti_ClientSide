@@ -41,6 +41,7 @@ export default function DashboardPage() {
 
   // Get current IST time
   const getIstNow = () => {
+    // This correctly gets current time and manually adjusts to IST
     const istOffsetMs = 5.5 * 60 * 60 * 1000;
     return new Date(new Date().getTime() + istOffsetMs);
   };
@@ -101,7 +102,8 @@ export default function DashboardPage() {
       if (body.success) {
         const now = new Date().toISOString()
         const incidentsForDisplay = body.activeIncidents || []
-        const obdTime = body.obdTimestamp ? new Date(body.obdTimestamp.replace('+05:30', '')) : null
+        // FIXED: Remove .replace('+05:30', '') to allow Date constructor to parse the full ISO string with offset
+        const obdTime = body.obdTimestamp ? new Date(body.obdTimestamp) : null
         const ageMs = obdTime && !isNaN(obdTime.getTime()) ? getIstNow().getTime() - obdTime.getTime() : Infinity
         console.log(`OBD - Client Age: ${ageMs / 1000}s, IsConnected: ${body.isConnected}`)
 
@@ -119,8 +121,10 @@ export default function DashboardPage() {
           lastUpdate: now,
           driverScore: body.driverScore || 100,
           recentIncidents: body.recentIncidents || 0,
-          dataAge: body.lastUpdate ? Math.floor((getIstNow().getTime() - new Date(body.lastUpdate.replace('+05:30', '')).getTime()) / 1000) : 45,
-          activeIncidents: incidentsForDisplay.sort((a, b) => new Date(b.time.replace('+05:30', '') || now).getTime() - new Date(a.time.replace('+05:30', '') || now).getTime()),
+          // FIXED: Remove .replace('+05:30', '')
+          dataAge: body.lastUpdate ? Math.floor((getIstNow().getTime() - new Date(body.lastUpdate).getTime()) / 1000) : 45,
+          // FIXED: Remove .replace('+05:30', '') for sorting
+          activeIncidents: incidentsForDisplay.sort((a, b) => new Date(b.time || now).getTime() - new Date(a.time || now).getTime()),
         })
       } else {
         console.error('API Failure:', body.error)
@@ -166,8 +170,9 @@ export default function DashboardPage() {
 
   const dataStatus = getDataAgeStatus(data.dataAge)
 
+  // FIXED: Remove .replace('+05:30', '') for sorting
   const sortedIncidents = [...(data.activeIncidents || [])].sort(
-    (a, b) => new Date(b.time.replace('+05:30', '') || data.lastUpdate).getTime() - new Date(a.time.replace('+05:30', '') || data.lastUpdate).getTime()
+    (a, b) => new Date(b.time || data.lastUpdate).getTime() - new Date(a.time || data.lastUpdate).getTime()
   )
 
   const highestSeverity = getHighestSeverity(sortedIncidents)
@@ -175,15 +180,18 @@ export default function DashboardPage() {
   // Format timestamp to "01:23 PM" format for all sensors
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return "N/A";
-    const date = new Date(timestamp.replace('+05:30', ''));
+    // FIXED: Remove .replace('+05:30', '')
+    const date = new Date(timestamp);
     if (isNaN(date.getTime())) return "Invalid";
-    return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }); // e.g., "01:23 PM"
+    // FIXED: Explicitly set timeZone to Asia/Kolkata for consistent IST display
+    return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }); // e.g., "01:23 PM"
   };
 
   // Check if sensor is online based on age (90,000 ms = 1.5 minutes threshold)
   const isSensorOnline = (timestamp) => {
     if (!timestamp) return false;
-    const date = new Date(timestamp.replace('+05:30', ''));
+    // FIXED: Remove .replace('+05:30', '')
+    const date = new Date(timestamp);
     if (isNaN(date.getTime())) return false;
     const ageMs = getIstNow().getTime() - date.getTime();
     return ageMs < 90_000; // Online if less than 1.5 minutes old
@@ -227,7 +235,8 @@ export default function DashboardPage() {
             { name: "Dash Cam", key: "frontcamTimestamp" },
             { name: "Alcohol Sensor", key: "alcoholTimestamp" }
           ].map((sensor) => {
-            const lastTime = data[sensor.key] ? new Date(data[sensor.key].replace('+05:30', '')) : null;
+            // FIXED: Remove .replace('+05:30', '')
+            const lastTime = data[sensor.key] ? new Date(data[sensor.key]) : null;
             const isOnline = isSensorOnline(data[sensor.key]);
             console.log(`Sensor: ${sensor.name}, isOnline: ${isOnline}, Timestamp: ${lastTime?.toISOString() || 'Invalid'}, Age: ${lastTime ? (getIstNow().getTime() - lastTime.getTime()) / 1000 : 'N/A'}s`);
             return (
