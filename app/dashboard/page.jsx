@@ -107,7 +107,7 @@ export default function DashboardPage() {
 
         setData({
           alcoholLevel: parseFloat(body.alcoholLevel) || 0.0,
-          alcoholTimestamp: body.alcoholTimestamp.replce('+05:30', '') ,
+          alcoholTimestamp: body.alcoholTimestamp ? body.alcoholTimestamp.replace('+05:30', '') : null,
           visibilityScore: body.visibilityScore || 0,
           frontcamTimestamp: body.frontcamTimestamp,
           drowsinessState: body.drowsinessState || "Awake",
