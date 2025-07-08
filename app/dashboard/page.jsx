@@ -83,7 +83,7 @@ export default function DashboardPage() {
     if (!timestamp || isNaN(new Date(timestamp).getTime())) return "Never"
     const now = new Date()
     const time = new Date(timestamp)
-    const diffMs = now.getTime() - time.getTime()
+    const diffMs = now.getTime() - time.getTime() // UTC-based
     const diffMins = Math.floor(diffMs / 60000)
     if (diffMins < 1) return "Just now"
     if (diffMins < 60) return `${diffMins}m ago`
@@ -109,6 +109,10 @@ export default function DashboardPage() {
       if (body.success) {
         const now = new Date().toISOString()
         const incidentsForDisplay = body.activeIncidents || []
+        const obdTime = body.obdTimestamp ? new Date(body.obdTimestamp) : null
+        const ageMs = obdTime && !isNaN(obdTime.getTime()) ? new Date(now).getTime() - obdTime.getTime() : Infinity
+        console.log(`OBD - Client Age: ${ageMs / 1000}s, IsConnected: ${body.isConnected}`)
+
         setData({
           alcoholLevel: parseFloat(body.alcoholLevel) || 0.0,
           alcoholTimestamp: body.alcoholTimestamp,
@@ -119,7 +123,7 @@ export default function DashboardPage() {
           speed: body.speed || 0,
           obdTimestamp: body.obdTimestamp,
           coordinates: body.coordinates || { lat: 48.8584, lng: 2.2945 },
-          isConnected: body.isConnected || false,
+          isConnected: body.isConnected && ageMs < 90_000, // Strict UTC check
           lastUpdate: now,
           driverScore: body.driverScore || 100,
           recentIncidents: body.recentIncidents || 0,
