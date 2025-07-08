@@ -4,19 +4,32 @@
 The alcohol sensor (and other sensors) were showing as "offline" even when they were actually online due to incorrect timezone handling.
 
 ## Root Cause:
-1. **Server-side**: CSV timestamps were in IST (Indian Standard Time)
-2. **Conversion Issue**: The code was treating IST timestamps as if they were UTC, then appending `+05:30`
-3. **Client-side**: The client was comparing IST times with UTC times, causing a 5.5-hour offset
+1. **CSV Format Inconsistency**: Some CSV files have timestamps with `+05:30` timezone info, others don't
+2. **Double Timezone Conversion**: When timestamps already had `+05:30`, the code was still subtracting IST offset
+3. **Client-side Comparison**: The client was comparing times with inconsistent timezone handling
+
+## Actual Issue from Logs:
+- **Alcohol sensor**: Raw timestamp `2025-07-08T22:13:25.824988+05:30` was being double-converted
+- **JavaScript parsing**: `new Date("2025-07-08T22:13:25.824988+05:30")` gives correct UTC time, but code was subtracting IST offset again
+- **Result**: Timestamp was 5.5 hours behind actual time
 
 ## Changes Made:
 
 ### 1. Server-side (API route.js):
-- **Before**: `const ts = new Date(timestamp); return ts.toISOString() + '+05:30'`
+- **Before**: Always subtract IST offset from parsed timestamp
 - **After**: 
   ```javascript
-  const ts = new Date(timestamp); // Parse IST timestamp
-  const utcTs = new Date(ts.getTime() - istOffsetMs); // Convert to UTC
-  return utcTs.toISOString() + '+05:30'; // Send UTC time with IST marker
+  // Check if timestamp already has timezone info
+  if (timestamp.includes('+05:30')) {
+    // Parse directly - JavaScript handles timezone conversion
+    const ts = new Date(timestamp);
+    finalTimestamp = ts.toISOString() + '+05:30';
+  } else {
+    // Timestamp is IST without timezone info, convert to UTC
+    const ts = new Date(timestamp);
+    const utcTs = new Date(ts.getTime() - istOffsetMs);
+    finalTimestamp = utcTs.toISOString() + '+05:30';
+  }
   ```
 
 ### 2. Client-side (page.jsx):

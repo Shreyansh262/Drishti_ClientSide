@@ -39,14 +39,25 @@ export async function GET() {
         const latest = lines.at(-1);
         if (latest) {
           const [timestamp, sensorLine] = latest.split(",");
-          // Parse the timestamp as IST (local time on the device)
-          const ts = new Date(timestamp);
-          // Convert IST to UTC by subtracting the offset, then format as ISO string
-          const utcTs = new Date(ts.getTime() - istOffsetMs);
-          console.log(`Alcohol - Raw timestamp: ${timestamp}, Parsed as: ${ts.toISOString()}, UTC: ${utcTs.toISOString()}`);
+          let finalTimestamp = null;
+          
+          // Check if timestamp already has timezone info
+          if (timestamp.includes('+05:30')) {
+            // Timestamp already has timezone, parse directly
+            const ts = new Date(timestamp);
+            finalTimestamp = !isNaN(ts.getTime()) ? ts.toISOString() + '+05:30' : null;
+            console.log(`Alcohol - Raw timestamp: ${timestamp}, Parsed directly: ${ts.toISOString()}`);
+          } else {
+            // Timestamp is in IST without timezone info, convert to UTC
+            const ts = new Date(timestamp);
+            const utcTs = new Date(ts.getTime() - istOffsetMs);
+            finalTimestamp = !isNaN(ts.getTime()) ? utcTs.toISOString() + '+05:30' : null;
+            console.log(`Alcohol - Raw timestamp: ${timestamp}, Parsed as IST: ${ts.toISOString()}, UTC: ${utcTs.toISOString()}`);
+          }
+          
           return {
             level: sensorLine?.match(/Sensor Value:\s*(\d+)/) ? parseInt(RegExp.$1, 10) : 0,
-            timestamp: !isNaN(ts.getTime()) ? utcTs.toISOString() + '+05:30' : null,
+            timestamp: finalTimestamp,
           };
         }
         return { level: 0, timestamp: null };
@@ -59,13 +70,26 @@ export async function GET() {
         const records = parse(content, { skip_empty_lines: true });
         const latest = records.at(-1);
         if (latest && latest.length >= 4) {
-          const ts = new Date(`${latest[0]} ${latest[1]}`); // Timestamp from CSV in IST
-          // Convert IST to UTC by subtracting the offset, then format as ISO string
-          const utcTs = new Date(ts.getTime() - istOffsetMs);
-          console.log(`Visibility - Raw timestamp: ${latest[0]} ${latest[1]}, Parsed as: ${ts.toISOString()}, UTC: ${utcTs.toISOString()}`);
+          const timestampStr = `${latest[0]} ${latest[1]}`;
+          let finalTimestamp = null;
+          
+          // Check if timestamp already has timezone info
+          if (timestampStr.includes('+05:30')) {
+            // Timestamp already has timezone, parse directly
+            const ts = new Date(timestampStr);
+            finalTimestamp = !isNaN(ts.getTime()) ? ts.toISOString() + '+05:30' : null;
+            console.log(`Visibility - Raw timestamp: ${timestampStr}, Parsed directly: ${ts.toISOString()}`);
+          } else {
+            // Timestamp is in IST without timezone info, convert to UTC
+            const ts = new Date(timestampStr);
+            const utcTs = new Date(ts.getTime() - istOffsetMs);
+            finalTimestamp = !isNaN(ts.getTime()) ? utcTs.toISOString() + '+05:30' : null;
+            console.log(`Visibility - Raw timestamp: ${timestampStr}, Parsed as IST: ${ts.toISOString()}, UTC: ${utcTs.toISOString()}`);
+          }
+          
           return {
             score: Math.round(parseFloat(latest[3] || "0")),
-            timestamp: !isNaN(ts.getTime()) ? utcTs.toISOString() + '+05:30' : null,
+            timestamp: finalTimestamp,
           };
         }
         return { score: 0, timestamp: null };
@@ -84,13 +108,27 @@ export async function GET() {
           else if (alert.includes("drowsiness")) state = "Drowsy";
           else if (alert.includes("sleepiness")) state = "Sleepy";
           else if (alert.includes("no driver")) state = "No Face Detected";
-          const ts = new Date(latest?.[1] || ""); // Timestamp from CSV in IST
-          // Convert IST to UTC by subtracting the offset, then format as ISO string
-          const utcTs = new Date(ts.getTime() - istOffsetMs);
-          console.log(`Drowsiness - Raw timestamp: ${latest?.[1]}, Parsed as: ${ts.toISOString()}, UTC: ${utcTs.toISOString()}`);
+          
+          const timestampStr = latest?.[1] || "";
+          let finalTimestamp = null;
+          
+          // Check if timestamp already has timezone info
+          if (timestampStr.includes('+05:30')) {
+            // Timestamp already has timezone, parse directly
+            const ts = new Date(timestampStr);
+            finalTimestamp = !isNaN(ts.getTime()) ? ts.toISOString() + '+05:30' : null;
+            console.log(`Drowsiness - Raw timestamp: ${timestampStr}, Parsed directly: ${ts.toISOString()}`);
+          } else {
+            // Timestamp is in IST without timezone info, convert to UTC
+            const ts = new Date(timestampStr);
+            const utcTs = new Date(ts.getTime() - istOffsetMs);
+            finalTimestamp = !isNaN(ts.getTime()) ? utcTs.toISOString() + '+05:30' : null;
+            console.log(`Drowsiness - Raw timestamp: ${timestampStr}, Parsed as IST: ${ts.toISOString()}, UTC: ${utcTs.toISOString()}`);
+          }
+          
           return {
             state,
-            timestamp: !isNaN(ts.getTime()) ? utcTs.toISOString() + '+05:30' : null,
+            timestamp: finalTimestamp,
           };
         }
         return { state: "Unknown", timestamp: null };
@@ -115,20 +153,33 @@ export async function GET() {
           const lat = safeParseFloat(parts[3]);
           const lng = safeParseFloat(parts[2]);
           const speed = safeParseFloat(parts[29]);
-          const ts = new Date(rawTime); // Timestamp from CSV in IST
-          // Convert IST to UTC by subtracting the offset, then format as ISO string
-          const utcTs = new Date(ts.getTime() - istOffsetMs);
-          const timestamp = !isNaN(ts.getTime()) ? utcTs.toISOString() + '+05:30' : null;
+          
+          let finalTimestamp = null;
+          
+          // Check if timestamp already has timezone info
+          if (rawTime.includes('+05:30')) {
+            // Timestamp already has timezone, parse directly
+            const ts = new Date(rawTime);
+            finalTimestamp = !isNaN(ts.getTime()) ? ts.toISOString() + '+05:30' : null;
+            console.log(`OBD - Raw Time: ${rawTime}, Parsed directly: ${ts.toISOString()}`);
+          } else {
+            // Timestamp is in IST without timezone info, convert to UTC
+            const ts = new Date(rawTime);
+            const utcTs = new Date(ts.getTime() - istOffsetMs);
+            finalTimestamp = !isNaN(ts.getTime()) ? utcTs.toISOString() + '+05:30' : null;
+            console.log(`OBD - Raw Time: ${rawTime}, Parsed as IST: ${ts.toISOString()}, UTC: ${utcTs.toISOString()}`);
+          }
+          
           const nowIstMs = nowIst.getTime();
-          const ageMs = timestamp ? Math.max(0, nowIstMs - new Date(timestamp.replace('+05:30', '')).getTime()) : Infinity;
+          const ageMs = finalTimestamp ? Math.max(0, nowIstMs - new Date(finalTimestamp.replace('+05:30', '')).getTime()) : Infinity;
           const isRecent = ageMs <= 60000;
           const isValid = lat !== null && lng !== null && speed !== null;
 
-          console.log(`OBD - Raw Time: ${rawTime}, IST Timestamp: ${ts.toISOString()}, UTC: ${utcTs.toISOString()}, Final: ${timestamp}, IsRecent: ${isRecent}, IsValid: ${isValid}, Age: ${ageMs / 1000}s`);
+          console.log(`OBD - Final: ${finalTimestamp}, IsRecent: ${isRecent}, IsValid: ${isValid}, Age: ${ageMs / 1000}s`);
           return {
             speed: isValid ? Math.round(speed) : 0,
             coordinates: isValid ? { lat, lng } : { lat: 48.8584, lng: 2.2945 },
-            timestamp,
+            timestamp: finalTimestamp,
             isConnected: isRecent && isValid,
           };
         }
