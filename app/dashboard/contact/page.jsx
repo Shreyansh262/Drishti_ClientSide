@@ -194,7 +194,7 @@ export default function ContactPage() {
             </p>
             <div className="flex items-center gap-3">
               <Mail className="h-5 w-5 text-blue-500 dark:text-blue-400" />
-              <span>support@drishti.com</span>
+              <span>drishtimonitoringsystem@gmail.com</span>
             </div>
             <div className="flex items-center gap-3">
               <Phone className="h-5 w-5 text-green-500 dark:text-green-400" />
@@ -202,7 +202,7 @@ export default function ContactPage() {
             </div>
             <div className="flex items-center gap-3">
               <MapPin className="h-5 w-5 text-red-500 dark:text-red-400" />
-              <span>123, Vehicle Safety Rd, New Delhi, India</span>
+              <span>B-12, North Campus, IIT Mandi, Himachal Pradesh 175075</span>
             </div>
           </CardContent>
         </Card>
