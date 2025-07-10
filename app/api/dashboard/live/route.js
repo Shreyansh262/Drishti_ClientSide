@@ -21,38 +21,32 @@ export async function GET() {
       activeIncidents: [],
       totalIncidents: 0,
       monthlyIncidents: 0,
-      weeklySafetyScore: "0.00",
     };
 
     // Get current server time (UTC) and convert to IST (UTC+5:30)
     const istOffsetMs = 5.5 * 60 * 60 * 1000;
     const nowUtc = new Date();
     const nowIst = new Date(nowUtc.getTime() + istOffsetMs);
-    console.log('Server Time (UTC):', nowUtc.toISOString(), 'Server Time (IST):', nowIst.toISOString(), 'Offset:', nowIst.getTimezoneOffset());
 
     const [alcoholResult, visibilityResult, drowsinessResult, obdResult, historyResult] = await Promise.allSettled([
       // Alcohol
       (async () => {
         const path = "/home/fast-and-furious/main/section_4_test_drive/mq3_data.csv";
-        const content = await getTailContent(path, 100);
+        const content = await getTailContent(path, 5000);
         const lines = content.split("\n").map(l => l.trim()).filter(l => l.includes(","));
         const latest = lines.at(-1);
         if (latest) {
           const [timestamp, sensorLine] = latest.split(",");
           let finalTimestamp = null;
           
-          // Check if timestamp already has timezone info
-          if (timestamp.includes('+05:30')) {
-            // Timestamp already has timezone, parse directly
-            const ts = new Date(timestamp);
-            finalTimestamp = !isNaN(ts.getTime()) ? ts.toISOString() + '+05:30' : null;
-            console.log(`Alcohol - Raw timestamp: ${timestamp}, Parsed directly: ${ts.toISOString()}`);
-          } else {
-            // Timestamp is in IST without timezone info, convert to UTC
-            const ts = new Date(timestamp);
-            const utcTs = new Date(ts.getTime() - istOffsetMs);
-            finalTimestamp = !isNaN(ts.getTime()) ? utcTs.toISOString() + '+05:30' : null;
-            console.log(`Alcohol - Raw timestamp: ${timestamp}, Parsed as IST: ${ts.toISOString()}, UTC: ${utcTs.toISOString()}`);
+          // Parse timestamp - assume IST format like "2025-07-10 14:30:45"
+          if (timestamp && timestamp.trim()) {
+            const ts = new Date(timestamp.trim());
+            if (!isNaN(ts.getTime())) {
+              // Convert IST to UTC and append timezone
+              const utcTs = new Date(ts.getTime() - istOffsetMs);
+              finalTimestamp = utcTs.toISOString().replace('Z', '+05:30');
+            }
           }
           
           return {
@@ -66,25 +60,21 @@ export async function GET() {
       // Visibility
       (async () => {
         const path = "/home/fast-and-furious/main/section_1_test_drive/visibility_log.csv";
-        const content = await getTailContent(path, 100);
+        const content = await getTailContent(path, 5000);
         const records = parse(content, { skip_empty_lines: true });
         const latest = records.at(-1);
         if (latest && latest.length >= 4) {
           const timestampStr = `${latest[0]} ${latest[1]}`;
           let finalTimestamp = null;
           
-          // Check if timestamp already has timezone info
-          if (timestampStr.includes('+05:30')) {
-            // Timestamp already has timezone, parse directly
-            const ts = new Date(timestampStr);
-            finalTimestamp = !isNaN(ts.getTime()) ? ts.toISOString() + '+05:30' : null;
-            console.log(`Visibility - Raw timestamp: ${timestampStr}, Parsed directly: ${ts.toISOString()}`);
-          } else {
-            // Timestamp is in IST without timezone info, convert to UTC
-            const ts = new Date(timestampStr);
-            const utcTs = new Date(ts.getTime() - istOffsetMs);
-            finalTimestamp = !isNaN(ts.getTime()) ? utcTs.toISOString() + '+05:30' : null;
-            console.log(`Visibility - Raw timestamp: ${timestampStr}, Parsed as IST: ${ts.toISOString()}, UTC: ${utcTs.toISOString()}`);
+          // Parse timestamp - assume IST format like "2025-07-10 14:30:45"
+          if (timestampStr && timestampStr.trim()) {
+            const ts = new Date(timestampStr.trim());
+            if (!isNaN(ts.getTime())) {
+              // Convert IST to UTC and append timezone
+              const utcTs = new Date(ts.getTime() - istOffsetMs);
+              finalTimestamp = utcTs.toISOString().replace('Z', '+05:30');
+            }
           }
           
           return {
@@ -98,7 +88,7 @@ export async function GET() {
       // Drowsiness
       (async () => {
         const path = "/home/fast-and-furious/main/section_2_test_drive/drowsiness_log.csv";
-        const content = await getTailContent(path, 100);
+        const content = await getTailContent(path, 5000);
         const records = parse(content, { skip_empty_lines: true, relax_column_count: true });
         const latest = records.at(-1);
         if (latest) {
@@ -112,18 +102,14 @@ export async function GET() {
           const timestampStr = latest?.[1] || "";
           let finalTimestamp = null;
           
-          // Check if timestamp already has timezone info
-          if (timestampStr.includes('+05:30')) {
-            // Timestamp already has timezone, parse directly
-            const ts = new Date(timestampStr);
-            finalTimestamp = !isNaN(ts.getTime()) ? ts.toISOString() + '+05:30' : null;
-            console.log(`Drowsiness - Raw timestamp: ${timestampStr}, Parsed directly: ${ts.toISOString()}`);
-          } else {
-            // Timestamp is in IST without timezone info, convert to UTC
-            const ts = new Date(timestampStr);
-            const utcTs = new Date(ts.getTime() - istOffsetMs);
-            finalTimestamp = !isNaN(ts.getTime()) ? utcTs.toISOString() + '+05:30' : null;
-            console.log(`Drowsiness - Raw timestamp: ${timestampStr}, Parsed as IST: ${ts.toISOString()}, UTC: ${utcTs.toISOString()}`);
+          // Parse timestamp - assume IST format like "2025-07-10 14:30:45"
+          if (timestampStr && timestampStr.trim()) {
+            const ts = new Date(timestampStr.trim());
+            if (!isNaN(ts.getTime())) {
+              // Convert IST to UTC and append timezone
+              const utcTs = new Date(ts.getTime() - istOffsetMs);
+              finalTimestamp = utcTs.toISOString().replace('Z', '+05:30');
+            }
           }
           
           return {
@@ -138,7 +124,6 @@ export async function GET() {
       (async () => {
         const path = "/home/fast-and-furious/main/obd_data/trackLog.csv";
         const content = await getTailContent(path, 100);
-        console.log(`OBD File Content: ${content.substring(0, 100)}...`);
         const lines = content.split("\n").map(l => l.trim()).filter(l => l.includes(","));
         const latest = lines.at(-1);
         const parts = latest?.split(",") || [];
@@ -156,18 +141,14 @@ export async function GET() {
           
           let finalTimestamp = null;
           
-          // Check if timestamp already has timezone info
-          if (rawTime.includes('+05:30')) {
-            // Timestamp already has timezone, parse directly
-            const ts = new Date(rawTime);
-            finalTimestamp = !isNaN(ts.getTime()) ? ts.toISOString() + '+05:30' : null;
-            console.log(`OBD - Raw Time: ${rawTime}, Parsed directly: ${ts.toISOString()}`);
-          } else {
-            // Timestamp is in IST without timezone info, convert to UTC
-            const ts = new Date(rawTime);
-            const utcTs = new Date(ts.getTime() - istOffsetMs);
-            finalTimestamp = !isNaN(ts.getTime()) ? utcTs.toISOString() + '+05:30' : null;
-            console.log(`OBD - Raw Time: ${rawTime}, Parsed as IST: ${ts.toISOString()}, UTC: ${utcTs.toISOString()}`);
+          // Parse timestamp - assume IST format
+          if (rawTime && rawTime.trim()) {
+            const ts = new Date(rawTime.trim());
+            if (!isNaN(ts.getTime())) {
+              // Convert IST to UTC and append timezone
+              const utcTs = new Date(ts.getTime() - istOffsetMs);
+              finalTimestamp = utcTs.toISOString().replace('Z', '+05:30');
+            }
           }
           
           const nowIstMs = nowIst.getTime();
@@ -175,7 +156,6 @@ export async function GET() {
           const isRecent = ageMs <= 60000;
           const isValid = lat !== null && lng !== null && speed !== null;
 
-          console.log(`OBD - Final: ${finalTimestamp}, IsRecent: ${isRecent}, IsValid: ${isValid}, Age: ${ageMs / 1000}s`);
           return {
             speed: isValid ? Math.round(speed) : 0,
             coordinates: isValid ? { lat, lng } : { lat: 48.8584, lng: 2.2945 },
@@ -190,24 +170,21 @@ export async function GET() {
       (async () => {
         const path = "/home/fast-and-furious/main/master_log.csv";
         try {
-          const content = await getTailContent(path, 100);
-          console.log(`History File Content: ${content.substring(0, 100)}...`);
+          const content = await getTailContent(path, 1000);
           const lines = content.trim().split("\n");
           const [header, ...rows] = lines;
           const all = rows.map((line, i) => {
             const [dt, type, severity, loc, desc] = line.split(",");
             let finalTimestamp = null;
             
-            // Check if timestamp already has timezone info
-            if (dt && dt.includes('+05:30')) {
-              // Timestamp already has timezone, parse directly
-              const time = new Date(dt);
-              finalTimestamp = !isNaN(time.getTime()) ? time.toISOString() + '+05:30' : null;
-            } else {
-              // Timestamp is in IST without timezone info, convert to UTC
-              const time = new Date(dt);
-              const utcTime = new Date(time.getTime() - istOffsetMs);
-              finalTimestamp = !isNaN(time.getTime()) ? utcTime.toISOString() + '+05:30' : null;
+            // Parse timestamp - assume IST format
+            if (dt && dt.trim()) {
+              const time = new Date(dt.trim());
+              if (!isNaN(time.getTime())) {
+                // Convert IST to UTC and append timezone
+                const utcTime = new Date(time.getTime() - istOffsetMs);
+                finalTimestamp = utcTime.toISOString().replace('Z', '+05:30');
+              }
             }
             
             return finalTimestamp ? {
@@ -220,53 +197,60 @@ export async function GET() {
             } : null;
           }).filter(Boolean);
 
-          const nowIstIso = nowIst.toISOString() + '+05:30';
-          const todayStart = new Date(nowIst.setUTCHours(0, 0, 0, 0)).toISOString() + '+05:30';
-          const sixHoursAgo = new Date(nowIst.getTime() - 6 * 60 * 60 * 1000).toISOString() + '+05:30';
-          const thisMonth = nowIst.getUTCMonth();
-
-          const today = all.filter(x => x.time >= todayStart && x.time <= nowIstIso);
-          const recent = today.filter(x => x.time >= sixHoursAgo);
-          const monthly = all.filter(x => new Date(x.time.replace('+05:30', '')).getUTCMonth() === thisMonth);
-
-          let penalty = 0;
-          today.forEach(inc => {
-            if (inc.severity.toLowerCase() === "high") penalty += 0.2;
-            else if (inc.severity.toLowerCase() === "medium") penalty += 0.05;
+          const nowUtc = new Date();
+          
+          // Calculate time ranges using Date objects for accurate comparison
+          const twoDaysAgo = new Date(nowUtc.getTime() - 2 * 24 * 60 * 60 * 1000);
+          const thirtyDaysAgo = new Date(nowUtc.getTime() - 30 * 24 * 60 * 60 * 1000);
+          
+          // Filter incidents using proper date comparison
+          const last48Hours = all.filter(x => {
+            const incidentDate = new Date(x.time.replace('+05:30', ''));
+            return incidentDate >= twoDaysAgo && incidentDate <= nowUtc;
+          });
+          
+          const last30Days = all.filter(x => {
+            const incidentDate = new Date(x.time.replace('+05:30', ''));
+            return incidentDate >= thirtyDaysAgo && incidentDate <= nowUtc;
+          });
+          
+          // Monthly incidents should check both month and year
+          const currentMonth = nowUtc.getMonth();
+          const currentYear = nowUtc.getFullYear();
+          const monthly = all.filter(x => {
+            const incidentDate = new Date(x.time.replace('+05:30', ''));
+            return incidentDate.getMonth() === currentMonth && incidentDate.getFullYear() === currentYear;
           });
 
-          let score = 100;
-          if (recent.length === 0) {
-            const hrs = Math.floor((new Date(nowIstIso.replace('+05:30', '')) - new Date(todayStart.replace('+05:30', ''))) / (60 * 60 * 1000));
-            score += Math.min(hrs, 20) / 2;
-          }
-
-          const driverScore = Math.max(0, Math.min(100, score - penalty));
-
-          let weeklyPenalty = 0;
-          const oneWeekAgo = new Date(nowIst.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString() + '+05:30';
-          const week = all.filter(x => x.time >= oneWeekAgo);
-          week.forEach(inc => {
-            if (inc.severity.toLowerCase() === "high") weeklyPenalty += 0.2;
-            else if (inc.severity.toLowerCase() === "medium") weeklyPenalty += 0.05;
+          // Calculate daily safety score based on last 48 hours
+          let dailyPenalty = 0;
+          last48Hours.forEach(inc => {
+            if (inc.severity.toLowerCase() === "high") dailyPenalty += 0.15;
+            else if (inc.severity.toLowerCase() === "medium") dailyPenalty += 0.08;
+            else if (inc.severity.toLowerCase() === "low") dailyPenalty += 0;
           });
-          const weeklyScore = Math.max(0, 100 - (weeklyPenalty / 7)).toFixed(2);
+          
+          const dailyScore = Math.max(0, Math.min(100, 100 - dailyPenalty/2));
 
-          console.log(`History - Recent Incidents: ${recent.length}, Driver Score: ${driverScore}, Active Incidents: ${today.length}`);
+          // Get 4 most recent incidents from last 48 hours for live alerts
+          const recentIncidents = last48Hours
+            .sort((a, b) => new Date(b.time.replace('+05:30', '')).getTime() - new Date(a.time.replace('+05:30', '')).getTime())
+            .slice(0, 4);
+
+          console.log(`History - Last 48 Hours: ${last48Hours.length}, Daily Score: ${dailyScore}, Recent Incidents: ${recentIncidents.length}`);
+          
           return {
             totalIncidents: all.length,
             monthlyIncidents: monthly.length,
-            weeklySafetyScore: weeklyScore,
-            driverScore,
-            recentIncidents: recent.length,
-            activeIncidents: today,
+            driverScore: dailyScore,
+            recentIncidents: last48Hours.length,
+            activeIncidents: recentIncidents,
           };
         } catch (err) {
           console.error('History fetch error:', err);
           return {
             totalIncidents: 0,
             monthlyIncidents: 0,
-            weeklySafetyScore: "0.00",
             driverScore: 100,
             recentIncidents: 0,
             activeIncidents: [],
@@ -302,13 +286,12 @@ export async function GET() {
       const history = historyResult.value;
       dashboardData.totalIncidents = history.totalIncidents;
       dashboardData.monthlyIncidents = history.monthlyIncidents;
-      dashboardData.weeklySafetyScore = history.weeklySafetyScore;
       dashboardData.driverScore = history.driverScore;
       dashboardData.recentIncidents = history.recentIncidents;
       dashboardData.activeIncidents = history.activeIncidents;
     }
 
-    dashboardData.lastUpdate = nowIst.toISOString() + '+05:30';
+    dashboardData.lastUpdate = nowUtc.toISOString().replace('Z', '+05:30');
     return NextResponse.json({ success: true, ...dashboardData });
   } catch (err) {
     console.error('API Error:', err);

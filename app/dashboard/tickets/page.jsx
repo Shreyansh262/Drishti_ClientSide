@@ -81,7 +81,7 @@ export default function TicketsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-indigo-900 dark:to-purple-950">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
           <p className="mt-4 text-gray-600 dark:text-gray-400">Loading tickets...</p>
@@ -91,9 +91,9 @@ export default function TicketsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-indigo-900 dark:to-purple-950 p-4 md:p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Support Tickets</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Support Tickets</h1>
         <Button onClick={() => router.push("/dashboard/tickets/new")}>
           <Plus className="h-4 w-4 mr-2" />
           New Ticket
@@ -103,10 +103,10 @@ export default function TicketsPage() {
       {/* Tickets List */}
       <div className="grid gap-4">
         {tickets.length === 0 ? (
-          <Card>
+          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-white/20 dark:border-gray-700/50 shadow-lg">
             <CardContent className="text-center py-8">
               <Ticket className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">No tickets found</p>
+              <p className="text-gray-500 dark:text-gray-400">No tickets found</p>
               <Button className="mt-4" onClick={() => router.push("/dashboard/tickets/new")}>
                 Create Your First Ticket
               </Button>
@@ -114,10 +114,10 @@ export default function TicketsPage() {
           </Card>
         ) : (
           tickets.map((ticket) => (
-            <Card key={ticket.id} className="hover:shadow-lg transition-shadow">
+            <Card key={ticket.id} className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-white/20 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{ticket.title}</CardTitle>
+                  <CardTitle className="text-lg text-gray-800 dark:text-white">{ticket.title}</CardTitle>
                   <div className="flex items-center gap-2">
                     <Badge className={getPriorityColor(ticket.priority)}>{ticket.priority.toUpperCase()}</Badge>
                     <Badge className={getStatusColor(ticket.status)}>
@@ -128,9 +128,9 @@ export default function TicketsPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 mb-4">{ticket.description}</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">{ticket.description}</p>
 
-                <div className="grid grid-cols-2 gap-4 text-sm text-gray-500 mb-4">
+                <div className="grid grid-cols-2 gap-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
                   <div>
                     <span className="font-medium">Incident Date:</span> {ticket.incidentDate}
                   </div>
@@ -146,16 +146,17 @@ export default function TicketsPage() {
                 </div>
 
                 {ticket.adminResponse && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                    <p className="text-sm font-medium text-blue-800 mb-1">Admin Response:</p>
-                    <p className="text-sm text-blue-700">{ticket.adminResponse}</p>
+                  <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+                    <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">Admin Response:</p>
+                    <p className="text-sm text-blue-700 dark:text-blue-400">{ticket.adminResponse}</p>
                   </div>
                 )}
 
                 <div className="flex justify-between items-center">
-                  <div className="text-sm text-gray-500">Ticket #{ticket.id}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Ticket #{ticket.id}</div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/contact`)}>
+                    <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/contact`)} 
+                      className="bg-white/70 dark:bg-gray-600/70 hover:bg-white dark:hover:bg-gray-600 border-gray-300 dark:border-gray-500 text-gray-700 dark:text-gray-200">
                       Contact Us
                     </Button>
                   </div>

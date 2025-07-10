@@ -62,7 +62,7 @@ export async function GET(req) {
       totalIncidents,
       monthlyIncidents,
       weeklySafetyScore,
-      incidents: allIncidents,
+      incidents: allIncidents.sort((a, b) => b.time.getTime() - a.time.getTime()), // Sort by most recent first
     })
   } catch (err) {
     console.error("API /history error:", err)
