@@ -211,32 +211,15 @@ export default function DashboardPage() {
   // Check if sensor is online based on age (90,000 ms = 1.5 minutes threshold)
   const isSensorOnline = (timestamp) => {
     if (!timestamp) return false;
+    // Remove the +05:30 suffix to get the UTC time
+    const utcDate = new Date(timestamp.replace('+05:30', ''));
+    if (isNaN(utcDate.getTime())) return false;
     
-    let utcDate;
-    try {
-      // Handle different timestamp formats
-      if (timestamp.includes('+05:30')) {
-        // Format with timezone suffix
-        utcDate = new Date(timestamp.replace('+05:30', ''));
-      } else if (timestamp.includes(',')) {
-        // Handle comma-separated format like "2025-07-10,11:50:02"
-        utcDate = new Date(timestamp.replace(',', ' '));
-      } else {
-        // Standard format
-        utcDate = new Date(timestamp);
-      }
-      
-      if (isNaN(utcDate.getTime())) return false;
-      
-      // Get current UTC time for comparison
-      const nowUtc = new Date();
-      const ageMs = nowUtc.getTime() - utcDate.getTime();
-      
-      return ageMs < 90_000; // Online if less than 1.5 minutes old
-    } catch (error) {
-      console.error('Error checking sensor online status:', timestamp, error);
-      return false;
-    }
+    // Get current UTC time for comparison
+    const nowUtc = new Date();
+    const ageMs = nowUtc.getTime() - utcDate.getTime();
+    
+    return ageMs < 90_000; // Online if less than 1.5 minutes old
   };
 
   return (
@@ -349,7 +332,7 @@ export default function DashboardPage() {
                         highestSeverity === "low" ? "text-blue-600 dark:text-blue-400" :
                           "text-green-600 dark:text-green-400"
                       }`} />
-                    Live Safety Alerts
+                    Live Safety Alerts (Last 48 Hours)
                   </div>
                 <Badge className={`${highestSeverity === "high" ? "bg-red-600" :
                   highestSeverity === "medium" ? "bg-yellow-600" :
